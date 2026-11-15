@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#08090b">
+    <meta name="description" content="Единый личный кабинет экосистемы nmchv">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Аккаунт — nmchv</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles/tokens.css">
+    <link rel="stylesheet" href="./styles/app.css?v=5">
+    <script type="module" src="./scripts/app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Основная навигация">
+        <a class="brand" href="#overview" aria-label="nmchv Account — главная">
+          <span class="brand-mark" aria-hidden="true">n</span>
+          <span class="brand-name">nmchv<span>account</span></span>
+        </a>
+        <div class="sidebar-label">АККАУНТ</div>
+        <nav class="navigation">
+          <a class="nav-link" href="#overview" data-route="overview"><span class="nav-icon" data-icon="overview"></span><span>Обзор</span></a>
+          <a class="nav-link" href="#projects" data-route="projects"><span class="nav-icon" data-icon="projects"></span><span>Проекты</span></a>
+          <a class="nav-link" href="#activity" data-route="activity"><span class="nav-icon" data-icon="activity"></span><span>Активность</span></a>
+          <a class="nav-link" href="#statistics" data-route="statistics"><span class="nav-icon" data-icon="statistics"></span><span>Статистика</span></a>
+          <a class="nav-link" href="#achievements" data-route="achievements"><span class="nav-icon" data-icon="achievements"></span><span>Достижения</span></a>
+          <a class="nav-link" href="#goals" data-route="goals"><span class="nav-icon" data-icon="goals"></span><span>Цели</span></a>
+          <a class="nav-link" href="#notifications" data-route="notifications"><span class="nav-icon" data-icon="notifications"></span><span>Уведомления</span><span class="nav-count" id="notification-count" hidden></span></a>
+        </nav>
+        <div class="sidebar-label sidebar-label--settings">НАСТРОЙКИ</div>
+        <nav class="navigation">
+          <a class="nav-link" href="#profile" data-route="profile"><span class="nav-icon" data-icon="profile"></span><span>Профиль</span></a>
+          <a class="nav-link" href="#security" data-route="security"><span class="nav-icon" data-icon="security"></span><span>Безопасность</span></a>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="ecosystem-note">
+            <span class="ecosystem-spark" aria-hidden="true"></span>
+            <div><strong>Одна экосистема</strong><span>Все сервисы nmchv</span></div>
+            <span class="note-arrow" aria-hidden="true">↗</span>
+          </div>
+          <button class="user-chip" id="user-chip" type="button" aria-label="Открыть настройки профиля">
+            <span class="avatar avatar--small" id="sidebar-avatar">n</span>
+            <span class="user-chip-copy"><strong id="sidebar-name">Гость</strong><span id="sidebar-email">Войдите в аккаунт</span></span>
+            <span class="user-chip-menu" aria-hidden="true">···</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+      <main class="main">
+        <header class="topbar">
+          <button class="icon-button mobile-menu" id="menu-button" type="button" aria-label="Открыть меню" aria-expanded="false">
+            <span data-icon="menu"></span>
+          </button>
+          <div class="breadcrumbs"><span>nmchv</span><span class="breadcrumb-divider">/</span><strong id="current-breadcrumb">Обзор</strong></div>
+          <div class="topbar-actions">
+            <span class="connection-status" id="connection-status"><span class="status-dot"></span><span>Проверяем подключение</span></span>
+            <button class="icon-button notification-button" type="button" data-navigate="notifications" aria-label="Уведомления"><span data-icon="bell"></span><span class="notification-indicator" id="notification-indicator" hidden></span></button>
+            <button class="topbar-avatar" id="topbar-avatar" type="button" data-navigate="profile" aria-label="Открыть профиль">n</button>
+          </div>
+        </header>
+
+        <div class="content">
+          <div class="signed-out-banner" id="signed-out-banner">
+            <span class="banner-icon" data-icon="lock"></span>
+            <div class="banner-copy"><strong>Это ваш личный кабинет</strong><span>Войдите, чтобы увидеть свои проекты и данные. Здесь нет демонстрационной статистики.</span></div>
+            <button class="button button--primary button--small" type="button" data-auth="login">Войти в аккаунт <span aria-hidden="true">→</span></button>
+          </div>
+
+          <section class="view is-active" data-view="overview">
+            <div class="page-heading page-heading--overview">
+              <div>
+                <div class="eyebrow"><span class="eyebrow-line"></span> ВАШЕ ПРОСТРАНСТВО</div>
+                <h1>Хороший день<span class="heading-period">.</span></h1>
+                <p class="page-description" id="overview-description">Всё, что важно в экосистеме nmchv — в одном месте.</p>
+              </div>
+              <button class="button button--secondary" type="button" data-auth="login" id="overview-action"><span data-icon="login"></span> Войти в аккаунт</button>
+            </div>
+
+            <div class="metric-grid">
+              <article class="metric-card">
+                <div class="metric-top"><span class="metric-label">Активные проекты</span><span class="metric-icon metric-icon--blue" data-icon="projects"></span></div>
+                <div class="metric-value" id="metric-projects">—</div>
+                <div class="metric-foot" id="metric-projects-note">Подключите аккаунт</div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-top"><span class="metric-label">Выполнено заданий</span><span class="metric-icon metric-icon--violet" data-icon="check"></span></div>
+                <div class="metric-value" id="metric-tasks">—</div>
+                <div class="metric-foot">Данные появятся с активностью</div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-top"><span class="metric-label">Средний результат</span><span class="metric-icon metric-icon--mint" data-icon="trend"></span></div>
+                <div class="metric-value" id="metric-score">—</div>
+                <div class="metric-foot">По завершённым тестам</div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-top"><span class="metric-label">Время обучения</span><span class="metric-icon metric-icon--amber" data-icon="clock"></span></div>
+                <div class="metric-value" id="metric-time">—</div>
+                <div class="metric-foot">За всё время</div>
+              </article>
+            </div>
+
+            <div class="section-heading">
+              <div><h2>Мои проекты</h2><p>Ваши сервисы экосистемы nmchv</p></div>
+              <a class="text-link" href="#projects">Все проекты <span aria-hidden="true">↗</span></a>
+            </div>
+            <div class="project-grid project-grid--overview" id="overview-projects"></div>
+
+            <div class="overview-lower">
+              <section class="panel activity-panel">
+                <div class="panel-heading"><div><h2>Активность</h2><p>События в ваших проектах</p></div><a class="text-link" href="#activity">История <span aria-hidden="true">↗</span></a></div>
+                <div class="activity-chart-wrap">
+                  <div class="chart-y-labels" aria-hidden="true"><span>Больше</span><span>Меньше</span></div>
+                  <div class="activity-chart" id="activity-chart" aria-label="График активности за последние 14 дней"></div>
+                </div>
+                <div class="chart-legend"><span><i></i> Нет данных об активности</span><span id="chart-range">Последние 14 дней</span></div>
+              </section>
+              <section class="panel recent-panel">
+                <div class="panel-heading"><div><h2>Недавнее</h2><p>Последние события</p></div><a class="icon-link" href="#activity" aria-label="Вся активность">↗</a></div>
+                <div class="activity-list" id="recent-activity"></div>
+              </section>
+            </div>
+
+            <div class="bottom-callout">
+              <div class="callout-symbol" aria-hidden="true"><span></span><span></span><span></span></div>
+              <div><strong>Ваш путь — в вашем темпе</strong><p>Прогресс складывается из настоящей активности, а не из случайных цифр.</p></div>
+              <a href="#goals" class="button button--secondary button--small">Посмотреть цели <span aria-hidden="true">→</span></a>
+            </div>
+          </section>
+
+          <section class="view" data-view="projects">
+            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ЭКОСИСТЕМА</div><h1>Мои проекты<span class="heading-period">.</span></h1><p class="page-description">Сервисы, к которым у вас есть доступ.</p></div></div>
+            <div class="project-grid" id="projects-grid"></div>
+          </section>
+
+          <section class="view" data-view="activity">
+            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ВАШ ПУТЬ</div><h1>Активность<span class="heading-period">.</span></h1><p class="page-description">История событий в подключённых проектах.</p></div></div>
+            <section class="panel page-panel"><div class="panel-heading"><div><h2>Последние события</h2><p>За последние 30 дней</p></div></div><div class="activity-list activity-list--full" id="activity-list"></div></section>
+          </section>
+
+          <section class="view" data-view="statistics">
+            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> В ЦИФРАХ</div><h1>Статистика<span class="heading-period">.</span></h1><p class="page-description">Общий обзор активности во всех проектах.</p></div></div>
+            <div class="metric-grid metric-grid--statistics">
+              <article class="metric-card"><div class="metric-top"><span class="metric-label">Событий за 30 дней</span><span class="metric-icon metric-icon--blue" data-icon="activity"></span></div><div class="metric-value" id="stats-events">—</div><div class="metric-foot" id="stats-events-note">Нет подключённых данных</div></article>
+              <article class="metric-card"><div class="metric-top"><span class="metric-label">Активные дни</span><span class="metric-icon metric-icon--violet" data-icon="calendar"></span></div><div class="metric-value" id="stats-days">—</div><div class="metric-foot">За последние 30 дней</div></article>
+              <article class="metric-card"><div class="metric-top"><span class="metric-label">Завершённые тесты</span><span class="metric-icon metric-icon--mint" data-icon="check"></span></div><div class="metric-value" id="stats-tests">—</div><div class="metric-foot">По данным подключённых сервисов</div></article>
+              <article class="metric-card"><div class="metric-top"><span class="metric-label">Выполнено заданий</span><span class="metric-icon metric-icon--amber" data-icon="trend"></span></div><div class="metric-value" id="stats-tasks">—</div><div class="metric-foot">По данным подключённых сервисов</div></article>
+            </div>
+            <section class="panel page-panel statistics-panel"><div class="panel-heading"><div><h2>Ритм активности</h2><p>События по дням за последние две недели</p></div></div><div class="inline-error" id="statistics-error" role="alert" hidden></div><div class="activity-chart activity-chart--large" id="statistics-chart"></div></section>
+          </section>
+
+          <section class="view" data-view="achievements">
+            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ВАШИ РЕЗУЛЬТАТЫ</div><h1>Достижения<span class="heading-period">.</span></h1><p class="page-description">Заслуженные результаты из подключённых проектов.</p></div></div>
+            <div class="achievement-grid" id="achievements-grid"></div>
+          </section>
+
+          <section class="view" data-view="goals">
+            <div class="page-heading page-heading--with-action"><div><div class="eyebrow"><span class="eyebrow-line"></span> СВОЙ РИТМ</div><h1>Цели<span class="heading-period">.</span></h1><p class="page-description">Небольшие шаги, которые помогают двигаться вперёд.</p></div><button class="button button--primary" id="add-goal-button" type="button"><span aria-hidden="true">＋</span> Новая цель</button></div>
+            <div class="goal-grid" id="goals-grid"></div>
+          </section>
+
+          <section class="view" data-view="notifications">
+            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ВАЖНОЕ</div><h1>Уведомления<span class="heading-period">.</span></h1><p class="page-description">Только то, что действительно заслуживает внимания.</p></div></div>
+            <section class="panel page-panel"><div class="panel-heading"><div><h2>Центр уведомлений</h2><p>События вашего аккаунта и проектов</p></div></div><div class="notification-list" id="notifications-list"></div></section>
+          </section>
+
+          <section class="view" data-view="profile">
+            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ВАШ АККАУНТ</div><h1>Профиль<span class="heading-period">.</span></h1><p class="page-description">Как вас видят в экосистеме nmchv.</p></div></div>
+            <section class="panel settings-panel">
+              <div class="profile-intro"><span class="avatar avatar--large" id="profile-avatar">n</span><div><h2 id="profile-heading">Профиль</h2><p id="profile-email">Войдите, чтобы управлять профилем</p></div><span class="profile-status" id="profile-status">Не подключён</span></div>
+              <div class="inline-error profile-error" id="profile-data-error" role="alert" hidden></div>
+              <form id="profile-form" class="form-grid">
+                <label class="field"><span>Имя</span><input name="display_name" maxlength="80" autocomplete="name" placeholder="Как к вам обращаться"></label>
+                <label class="field"><span>Имя пользователя</span><input name="username" maxlength="40" autocomplete="username" placeholder="username"></label>
+                <label class="field"><span>Ссылка на аватар</span><input name="avatar_url" type="url" maxlength="2048" placeholder="https://example.com/avatar.jpg"></label>
+                <label class="field field--wide"><span>О себе</span><textarea name="bio" maxlength="240" rows="3" placeholder="Несколько слов о себе"></textarea></label>
+                <label class="field"><span>Язык</span><select name="preferred_language"><option value="ru">Русский</option><option value="en">English</option></select></label>
+                <label class="field"><span>Часовой пояс</span><input name="timezone" maxlength="64" placeholder="Europe/Moscow"></label>
+                <div class="form-actions field--wide"><span class="form-hint">Изменения доступны только после подключения аккаунта.</span><button class="button button--primary" type="submit">Сохранить профиль</button></div>
+              </form>
+            </section>
+          </section>
+
+          <section class="view" data-view="security">
+            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ВАШИ ДАННЫЕ</div><h1>Безопасность<span class="heading-period">.</span></h1><p class="page-description">Доступ к аккаунту и активные сессии.</p></div></div>
+            <div class="security-stack">
+              <section class="panel security-card"><div class="security-icon" data-icon="mail"></div><div class="security-copy"><h2>Электронная почта</h2><p id="security-email">Не подключена</p></div><span class="security-badge" id="email-verified">—</span></section>
+              <section class="panel security-card security-card--form"><div class="security-icon" data-icon="lock"></div><div class="security-copy"><h2>Пароль</h2><p>Используйте уникальный пароль для аккаунта.</p></div><button class="button button--secondary button--small" type="button" data-auth="reset">Изменить пароль</button></section>
+              <section class="panel security-card"><div class="security-icon" data-icon="device"></div><div class="security-copy"><h2>Активная сессия</h2><p id="session-description">Данные появятся после входа</p></div><div class="security-actions"><button class="button button--secondary button--small" id="signout-current" type="button">Это устройство</button><button class="button button--secondary button--small" id="signout-button" type="button">Все устройства</button></div></section>
+              <section class="panel security-card security-card--muted"><div class="security-icon" data-icon="key"></div><div class="security-copy"><h2>Passkeys и вход по биометрии</h2><p>Поддержка WebAuthn будет доступна после настройки провайдера авторизации.</p></div><span class="coming-soon">Позже</span></section>
+            </div>
+          </section>
+        </div>
+
+        <footer class="footer"><span>nmchv account <span class="footer-dot">·</span> Ваше пространство в экосистеме</span><span class="footer-version">Безопасно по умолчанию</span></footer>
+      </main>
+    </div>
+
+    <dialog class="dialog" id="auth-dialog" aria-labelledby="auth-title">
+      <form method="dialog" class="dialog-close-form"><button class="icon-button dialog-close" aria-label="Закрыть">×</button></form>
+      <div class="dialog-brand"><span class="brand-mark" aria-hidden="true">n</span><span>nmchv account</span></div>
+      <div class="dialog-heading"><div class="eyebrow"><span class="eyebrow-line"></span> ВАШЕ ПРОСТРАНСТВО</div><h2 id="auth-title">С возвращением<span class="heading-period">.</span></h2><p id="auth-description">Войдите, чтобы продолжить.</p></div>
+      <div class="auth-error" id="auth-error" role="alert" hidden></div>
+      <form class="auth-form" id="auth-form">
+        <label class="field"><span>Электронная почта</span><input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label class="field" id="password-field"><span>Пароль</span><input name="password" type="password" minlength="8" autocomplete="current-password" required placeholder="Не менее 8 символов"></label>
+        <button class="button button--primary auth-submit" type="submit" id="auth-submit">Войти</button>
+      </form>
+      <div class="auth-footer" id="auth-footer"><button type="button" class="text-button" data-auth="register">Создать аккаунт</button><button type="button" class="text-button" data-auth="reset">Забыли пароль?</button></div>
+      <p class="auth-config-note" id="auth-config-note" hidden>Авторизация пока не подключена. Укажите публичные параметры Supabase в <code>scripts/config.js</code>.</p>
+    </dialog>
+
+    <dialog class="dialog dialog--compact" id="goal-dialog" aria-labelledby="goal-title">
+      <form method="dialog" class="dialog-close-form"><button class="icon-button dialog-close" aria-label="Закрыть">×</button></form>
+      <div class="dialog-heading"><div class="eyebrow"><span class="eyebrow-line"></span> СЛЕДУЮЩИЙ ШАГ</div><h2 id="goal-title">Новая цель<span class="heading-period">.</span></h2><p>Выберите направление и удобный период.</p></div>
+      <div class="auth-error" id="goal-error" role="alert" hidden></div>
+      <form class="auth-form" id="goal-form">
+        <label class="field"><span>Название</span><input name="title" maxlength="100" required placeholder="Например, заниматься регулярно"></label>
+        <label class="field"><span>Тип цели</span><select name="metric" required><option value="tasks">Выполнить задания</option><option value="tests">Завершить тесты</option><option value="minutes">Уделить времени (мин)</option></select></label>
+        <label class="field"><span>Целевое значение</span><input name="target_value" type="number" min="1" max="100000" required value="5"></label>
+        <label class="field"><span>Период</span><select name="period" required><option value="weekly">Неделя</option><option value="monthly">Месяц</option></select></label>
+        <button class="button button--primary auth-submit" type="submit">Создать цель</button>
+      </form>
+    </dialog>
+    <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+  </body>
+</html>

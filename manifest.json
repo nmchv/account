@@ -1,0 +1,19 @@
+{
+  "name": "nmchv Account",
+  "short_name": "nmchv",
+  "description": "Единый личный кабинет экосистемы nmchv",
+  "lang": "ru",
+  "start_url": "./#overview",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#08090b",
+  "theme_color": "#08090b",
+  "icons": [
+    {
+      "src": "./assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
