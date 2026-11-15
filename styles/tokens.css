@@ -1,22 +1,74 @@
+/* ============================================================
+   Дизайн-токены nmchv account.
+   Те же значения, что в nmchv.ru (web) и Геотренажёре:
+   тёмная тема по умолчанию, светлая — data-theme="light" на <html>
+   (его выставляет theme.js, общий для всей экосистемы).
+   ============================================================ */
 :root {
+  --color-background: #08090b;
+  --color-surface: #111318;
+  --color-surface-elevated: #191d24;
+  --color-text-primary: #f2f4f7;
+  --color-text-secondary: #969eab;
+  --color-accent: #5b8def;
+  --color-accent-hover: #a5c4ff;
+  --color-border: #292e38;
+  --color-ok: #3bc48a;
+  --color-bad: #ef5b64;
+  --color-warn: #e5a921;
+
+  /* вспомогательные цвета, которые меняются вместе с темой */
+  --on-accent: #06080c;
+  --header-bg: rgb(8 9 11 / .82);
+  --overlay: rgb(8 9 11 / .72);
+  --shadow-lg: 0 18px 48px rgb(0 0 0 / .45);
+  --shadow-xl: 0 24px 72px rgb(0 0 0 / .5);
+  --placeholder: #6b7380;
   color-scheme: dark;
-  --bg: #08090b;
-  --surface: #111318;
-  --surface-raised: #15181f;
-  --surface-hover: #1a1e27;
-  --accent: #5b8def;
-  --accent-soft: rgba(91, 141, 239, .13);
-  --text: #f2f4f8;
-  --muted: #9299a8;
-  --muted-2: #686f7c;
-  --border: #252a35;
-  --border-soft: rgba(255, 255, 255, .055);
-  --green: #67c89b;
-  --violet: #9c8bf4;
-  --amber: #d7ad71;
-  --danger: #ee7e86;
-  --sidebar-width: 248px;
-  --radius: 14px;
-  --radius-small: 10px;
-  --font: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --font-sans: 'Manrope Variable', 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --radius: 6px;
+  --radius-lg: 8px;
+
+  /* полупрозрачные заливки: одинаково работают в обеих темах */
+  --fill-subtle: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  --fill-hover: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  --accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --accent-line: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  --gutter: clamp(16px, 4vw, 48px);
+  --max: 1120px;
+  --header-h: 60px;
+  --tabs-h: 46px;
+
+  /* шкала шрифтов: базовый размер — как в экосистеме, без масштабирования html */
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-xs: 0.8125rem;
+  --fs-h1: clamp(1.9rem, 1.35rem + 2.4vw, 3rem);
+  --fs-h2: clamp(1.15rem, 1.05rem + .5vw, 1.4rem);
+
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+:root[data-theme='light'] {
+  --color-background: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #edf1f7;
+  --color-text-primary: #12161d;
+  --color-text-secondary: #566070;
+  --color-accent: #2c5fd0;
+  --color-accent-hover: #1b43a6;
+  --color-border: #d3d9e3;
+  --color-ok: #1f9d68;
+  --color-bad: #d6404a;
+  --color-warn: #c98a0a;
+
+  --on-accent: #ffffff;
+  --header-bg: rgb(245 247 250 / .85);
+  --overlay: rgb(245 247 250 / .8);
+  --shadow-lg: 0 18px 48px rgb(20 33 61 / .18);
+  --shadow-xl: 0 24px 72px rgb(20 33 61 / .22);
+  --placeholder: #8a93a1;
+  color-scheme: light;
 }

@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#08090b">
+    <meta name="color-scheme" content="dark light">
+    <script src="./theme.js"></script>
     <meta name="description" content="Единый личный кабинет экосистемы nmchv">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,62 +14,48 @@
     <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles/tokens.css">
-    <link rel="stylesheet" href="./styles/app.css?v=5">
+    <link rel="stylesheet" href="./styles/app.css?v=6">
     <script type="module" src="./scripts/app.js"></script>
   </head>
   <body>
-    <div class="app-shell">
-      <aside class="sidebar" id="sidebar" aria-label="Основная навигация">
-        <a class="brand" href="#overview" aria-label="nmchv Account — главная">
-          <span class="brand-mark" aria-hidden="true">n</span>
+    <a class="skip-link" href="#main">К содержимому</a>
+    <header class="site-header" id="site-header">
+      <div class="container">
+        <a class="brand" href="#overview" aria-label="nmchv account — главная">
+          <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 20V4l14 16V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" /></svg>
           <span class="brand-name">nmchv<span>account</span></span>
         </a>
-        <div class="sidebar-label">АККАУНТ</div>
-        <nav class="navigation">
-          <a class="nav-link" href="#overview" data-route="overview"><span class="nav-icon" data-icon="overview"></span><span>Обзор</span></a>
-          <a class="nav-link" href="#projects" data-route="projects"><span class="nav-icon" data-icon="projects"></span><span>Проекты</span></a>
-          <a class="nav-link" href="#activity" data-route="activity"><span class="nav-icon" data-icon="activity"></span><span>Активность</span></a>
-          <a class="nav-link" href="#statistics" data-route="statistics"><span class="nav-icon" data-icon="statistics"></span><span>Статистика</span></a>
-          <a class="nav-link" href="#achievements" data-route="achievements"><span class="nav-icon" data-icon="achievements"></span><span>Достижения</span></a>
-          <a class="nav-link" href="#goals" data-route="goals"><span class="nav-icon" data-icon="goals"></span><span>Цели</span></a>
-          <a class="nav-link" href="#notifications" data-route="notifications"><span class="nav-icon" data-icon="notifications"></span><span>Уведомления</span><span class="nav-count" id="notification-count" hidden></span></a>
-        </nav>
-        <div class="sidebar-label sidebar-label--settings">НАСТРОЙКИ</div>
-        <nav class="navigation">
-          <a class="nav-link" href="#profile" data-route="profile"><span class="nav-icon" data-icon="profile"></span><span>Профиль</span></a>
-          <a class="nav-link" href="#security" data-route="security"><span class="nav-icon" data-icon="security"></span><span>Безопасность</span></a>
-        </nav>
-        <div class="sidebar-bottom">
-          <div class="ecosystem-note">
-            <span class="ecosystem-spark" aria-hidden="true"></span>
-            <div><strong>Одна экосистема</strong><span>Все сервисы nmchv</span></div>
-            <span class="note-arrow" aria-hidden="true">↗</span>
-          </div>
-          <button class="user-chip" id="user-chip" type="button" aria-label="Открыть настройки профиля">
-            <span class="avatar avatar--small" id="sidebar-avatar">n</span>
-            <span class="user-chip-copy"><strong id="sidebar-name">Гость</strong><span id="sidebar-email">Войдите в аккаунт</span></span>
-            <span class="user-chip-menu" aria-hidden="true">···</span>
+        <div class="header-actions">
+          <span class="connection-status" id="connection-status"><span class="status-dot"></span><span>Проверяем подключение</span></span>
+          <button class="icon-button notification-button" type="button" data-navigate="notifications" aria-label="Уведомления"><span data-icon="bell"></span><span class="notification-indicator" id="notification-indicator" hidden></span></button>
+          <button type="button" class="theme-toggle" data-theme-toggle data-label-light="Включить светлую тему" data-label-dark="Включить тёмную тему" aria-label="Включить светлую тему" title="Включить светлую тему">
+            <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6" /></svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z" /></svg>
           </button>
+          <button class="topbar-avatar" id="topbar-avatar" type="button" data-navigate="profile" aria-label="Открыть профиль">n</button>
         </div>
-      </aside>
+      </div>
+    </header>
+    <div class="tabs-wrap">
+      <div class="container">
+        <nav class="tabs" aria-label="Разделы кабинета">
+          <a class="nav-link" href="#overview" data-route="overview">Обзор</a>
+          <a class="nav-link" href="#projects" data-route="projects">Проекты</a>
+          <a class="nav-link" href="#activity" data-route="activity">Активность</a>
+          <a class="nav-link" href="#statistics" data-route="statistics">Статистика</a>
+          <a class="nav-link" href="#achievements" data-route="achievements">Достижения</a>
+          <a class="nav-link" href="#goals" data-route="goals">Цели</a>
+          <a class="nav-link" href="#notifications" data-route="notifications">Уведомления <span class="nav-count" id="notification-count" hidden></span></a>
+          <span class="nav-sep" aria-hidden="true"></span>
+          <a class="nav-link" href="#profile" data-route="profile">Профиль</a>
+          <a class="nav-link" href="#security" data-route="security">Безопасность</a>
+        </nav>
+      </div>
+    </div>
 
-      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
-      <main class="main">
-        <header class="topbar">
-          <button class="icon-button mobile-menu" id="menu-button" type="button" aria-label="Открыть меню" aria-expanded="false">
-            <span data-icon="menu"></span>
-          </button>
-          <div class="breadcrumbs"><span>nmchv</span><span class="breadcrumb-divider">/</span><strong id="current-breadcrumb">Обзор</strong></div>
-          <div class="topbar-actions">
-            <span class="connection-status" id="connection-status"><span class="status-dot"></span><span>Проверяем подключение</span></span>
-            <button class="icon-button notification-button" type="button" data-navigate="notifications" aria-label="Уведомления"><span data-icon="bell"></span><span class="notification-indicator" id="notification-indicator" hidden></span></button>
-            <button class="topbar-avatar" id="topbar-avatar" type="button" data-navigate="profile" aria-label="Открыть профиль">n</button>
-          </div>
-        </header>
-
-        <div class="content">
+    <main class="content container" id="main">
           <div class="signed-out-banner" id="signed-out-banner">
             <span class="banner-icon" data-icon="lock"></span>
             <div class="banner-copy"><strong>Это ваш личный кабинет</strong><span>Войдите, чтобы увидеть свои проекты и данные. Здесь нет демонстрационной статистики.</span></div>
@@ -197,15 +185,22 @@
               <section class="panel security-card security-card--muted"><div class="security-icon" data-icon="key"></div><div class="security-copy"><h2>Passkeys и вход по биометрии</h2><p>Поддержка WebAuthn будет доступна после настройки провайдера авторизации.</p></div><span class="coming-soon">Позже</span></section>
             </div>
           </section>
-        </div>
+    </main>
 
-        <footer class="footer"><span>nmchv account <span class="footer-dot">·</span> Ваше пространство в экосистеме</span><span class="footer-version">Безопасно по умолчанию</span></footer>
-      </main>
-    </div>
+    <footer class="footer">
+      <div class="container">
+        <span>© 2026 nmchv account · Безопасно по умолчанию</span>
+        <nav class="footer-links" aria-label="Экосистема nmchv">
+          <a href="https://nmchv.ru" rel="noopener">nmchv.ru</a>
+          <a href="https://geotrainer.nmchv.ru" rel="noopener">Геотренажёр</a>
+          <a href="#overview">К началу</a>
+        </nav>
+      </div>
+    </footer>
 
     <dialog class="dialog" id="auth-dialog" aria-labelledby="auth-title">
       <form method="dialog" class="dialog-close-form"><button class="icon-button dialog-close" aria-label="Закрыть">×</button></form>
-      <div class="dialog-brand"><span class="brand-mark" aria-hidden="true">n</span><span>nmchv account</span></div>
+      <div class="dialog-brand"><svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 20V4l14 16V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" /></svg><span>nmchv account</span></div>
       <div class="dialog-heading"><div class="eyebrow"><span class="eyebrow-line"></span> ВАШЕ ПРОСТРАНСТВО</div><h2 id="auth-title">С возвращением<span class="heading-period">.</span></h2><p id="auth-description">Войдите, чтобы продолжить.</p></div>
       <div class="auth-error" id="auth-error" role="alert" hidden></div>
       <form class="auth-form" id="auth-form">

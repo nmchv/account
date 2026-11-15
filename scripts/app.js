@@ -163,9 +163,6 @@ function renderChart(target, activities) {
 function renderSignedOut() {
   document.querySelector("#signed-out-banner").hidden = false;
   document.querySelector("#overview-action").hidden = false;
-  document.querySelector("#sidebar-name").textContent = "Гость";
-  document.querySelector("#sidebar-email").textContent = state.client ? "Войдите в аккаунт" : "Подключите Supabase";
-  setAvatar(document.querySelector("#sidebar-avatar"), "n");
   setAvatar(document.querySelector("#topbar-avatar"), "n");
   setAvatar(document.querySelector("#profile-avatar"), "n");
   document.querySelector("#profile-heading").textContent = "Профиль";
@@ -362,9 +359,6 @@ function updateProfileUI() {
   const profile = state.profile || {};
   const email = state.user?.email || "";
   const displayName = profile.display_name || profile.username || email.split("@")[0] || "Пользователь";
-  document.querySelector("#sidebar-name").textContent = displayName;
-  document.querySelector("#sidebar-email").textContent = email;
-  setAvatar(document.querySelector("#sidebar-avatar"), displayName, profile.avatar_url);
   setAvatar(document.querySelector("#topbar-avatar"), displayName, profile.avatar_url);
   setAvatar(document.querySelector("#profile-avatar"), displayName, profile.avatar_url);
   document.querySelector("#profile-heading").textContent = displayName;
@@ -555,14 +549,14 @@ function openRoute(route) {
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
-  document.querySelector("#current-breadcrumb").textContent = pageNames[page];
+  document.querySelector(".nav-link.is-active")?.scrollIntoView({ block: "nearest", inline: "center" });
+  window.scrollTo({ top: 0 });
   document.title = `${pageNames[page]} — nmchv Account`;
   if (!hasAuthCallback()) {
     const url = new URL(location.href);
     url.hash = page;
     history.replaceState(null, "", url);
   }
-  closeSidebar();
 }
 
 function hasAuthCallback() {
@@ -577,12 +571,6 @@ function getAuthRedirectUrl() {
   url.search = "";
   url.hash = "";
   return url.href;
-}
-
-function closeSidebar() {
-  document.querySelector("#sidebar").classList.remove("is-open");
-  document.querySelector("#sidebar-backdrop").classList.remove("is-visible");
-  document.querySelector("#menu-button").setAttribute("aria-expanded", "false");
 }
 
 function openGoalDialog() {
@@ -747,15 +735,8 @@ function bindEvents() {
   document.querySelector("#auth-form").addEventListener("submit", submitAuth);
   document.querySelector("#profile-form").addEventListener("submit", saveProfile);
   document.querySelector("#goal-form").addEventListener("submit", createGoal);
-  document.querySelector("#user-chip").addEventListener("click", () => openRoute("profile"));
   document.querySelector("#signout-current").addEventListener("click", () => signOut("local"));
   document.querySelector("#signout-button").addEventListener("click", () => signOut("global"));
-  document.querySelector("#menu-button").addEventListener("click", () => {
-    const open = document.querySelector("#sidebar").classList.toggle("is-open");
-    document.querySelector("#sidebar-backdrop").classList.toggle("is-visible", open);
-    document.querySelector("#menu-button").setAttribute("aria-expanded", String(open));
-  });
-  document.querySelector("#sidebar-backdrop").addEventListener("click", closeSidebar);
   document.querySelector("#add-goal-button").addEventListener("click", () => state.user ? openGoalDialog() : openAuth("login"));
   document.querySelector("#auth-dialog").addEventListener("click", (event) => {
     if (event.target === event.currentTarget) event.currentTarget.close();
@@ -768,9 +749,6 @@ function bindEvents() {
     if (button) openAuth(button.dataset.auth);
   });
   window.addEventListener("hashchange", () => openRoute(location.hash.slice(1)));
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeSidebar();
-  });
 }
 
 async function initialize() {

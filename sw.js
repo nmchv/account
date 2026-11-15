@@ -1,10 +1,11 @@
-const CACHE_NAME = "nmchv-account-shell-v5";
+const CACHE_NAME = "nmchv-account-shell-v6";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
   "./styles/tokens.css",
   "./styles/app.css",
+  "./theme.js",
   "./scripts/config.js",
   "./scripts/app.js",
   "./assets/icons/icon.svg"
