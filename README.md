@@ -4,7 +4,7 @@
 
 ## Запуск
 
-Откройте каталог через любой локальный HTTP-сервер (например, `python3 -m http.server 8000`) и перейдите на `http://localhost:8000`. Для Supabase Auth укажите URL проекта и публичный `anon`/publishable key в `scripts/config.js`. Не добавляйте `service_role` и другие секретные ключи.
+Откройте каталог через локальный HTTP-сервер, например `python3 -m http.server 8765`, и перейдите на `http://127.0.0.1:8765`. Этот адрес уже разрешён для Supabase Auth. Для настройки Supabase указываются URL проекта и публичный `anon`/publishable key в `scripts/config.js`. Не добавляйте `service_role` и другие секретные ключи.
 
 Кабинет подключён к общему проекту Supabase через публичный publishable key. Перед использованием примените схему в таком порядке:
 
