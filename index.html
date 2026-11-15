@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles/tokens.css">
-    <link rel="stylesheet" href="./styles/app.css?v=6">
+    <link rel="stylesheet" href="./styles/app.css?v=7">
     <script type="module" src="./scripts/app.js"></script>
   </head>
   <body>
@@ -30,6 +30,7 @@
         <div class="header-actions">
           <span class="connection-status" id="connection-status"><span class="status-dot"></span><span>Проверяем подключение</span></span>
           <button class="icon-button notification-button" type="button" data-navigate="notifications" aria-label="Уведомления"><span data-icon="bell"></span><span class="notification-indicator" id="notification-indicator" hidden></span></button>
+          <button class="icon-button" id="logout-button" type="button" aria-label="Выйти из аккаунта" title="Выйти из аккаунта" hidden><span data-icon="logout"></span></button>
           <button type="button" class="theme-toggle" data-theme-toggle data-label-light="Включить светлую тему" data-label-dark="Включить тёмную тему" aria-label="Включить светлую тему" title="Включить светлую тему">
             <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6" /></svg>
             <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z" /></svg>
@@ -185,6 +186,17 @@
               <section class="panel security-card security-card--muted"><div class="security-icon" data-icon="key"></div><div class="security-copy"><h2>Passkeys и вход по биометрии</h2><p>Поддержка WebAuthn будет доступна после настройки провайдера авторизации.</p></div><span class="coming-soon">Позже</span></section>
             </div>
           </section>
+          <section class="view" data-view="admin">
+            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ДЛЯ АДМИНИСТРАТОРА</div><h1>Админка<span class="heading-period">.</span></h1><p class="page-description">Обзор пользователей и активности экосистемы. Только чтение.</p></div><button class="button button--secondary" id="admin-refresh" type="button">Обновить</button></div>
+            <div class="inline-error" id="admin-error" role="alert" hidden></div>
+            <div class="metric-grid metric-grid--statistics">
+              <article class="metric-card"><div class="metric-top"><span class="metric-label">Пользователей</span><span class="metric-icon metric-icon--blue" data-icon="profile"></span></div><div class="metric-value" id="admin-users">—</div><div class="metric-foot">Всего профилей</div></article>
+              <article class="metric-card"><div class="metric-top"><span class="metric-label">Событий</span><span class="metric-icon metric-icon--violet" data-icon="activity"></span></div><div class="metric-value" id="admin-events">—</div><div class="metric-foot">За всё время</div></article>
+              <article class="metric-card"><div class="metric-top"><span class="metric-label">Новых за 7 дней</span><span class="metric-icon metric-icon--mint" data-icon="trend"></span></div><div class="metric-value" id="admin-new">—</div><div class="metric-foot">Регистрации</div></article>
+              <article class="metric-card"><div class="metric-top"><span class="metric-label">Активных за 7 дней</span><span class="metric-icon metric-icon--amber" data-icon="check"></span></div><div class="metric-value" id="admin-active">—</div><div class="metric-foot">Есть события</div></article>
+            </div>
+            <section class="panel page-panel"><div class="panel-heading"><div><h2>Пользователи</h2><p>Последние 50 регистраций</p></div></div><div class="table-wrap"><table class="admin-table"><thead><tr><th>Имя</th><th>Username</th><th>Язык</th><th>Регистрация</th></tr></thead><tbody id="admin-users-body"></tbody></table></div></section>
+          </section>
     </main>
 
     <footer class="footer">
@@ -192,7 +204,7 @@
         <span>© 2026 nmchv account · Безопасно по умолчанию</span>
         <nav class="footer-links" aria-label="Экосистема nmchv">
           <a href="https://nmchv.ru" rel="noopener">nmchv.ru</a>
-          <a href="https://geotrainer.nmchv.ru" rel="noopener">Геотренажёр</a>
+          <button class="footer-admin" id="admin-button" type="button"><span data-icon="shield"></span> Админка</button>
           <a href="#overview">К началу</a>
         </nav>
       </div>

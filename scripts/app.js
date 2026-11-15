@@ -20,12 +20,14 @@ const icons = {
   calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
   device: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M11 18h2"/>',
+  logout: '<path d="M14 17l5-5-5-5M19 12H8"/><path d="M10 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/>',
   key: '<circle cx="8" cy="15" r="5"/><path d="m11.5 11.5 8-8 2 2-2 2 2 2-3 3-2-2-3 3"/>'
 };
 
 const pageNames = {
   overview: "Обзор", projects: "Проекты", activity: "Активность", statistics: "Статистика",
-  achievements: "Достижения", goals: "Цели", notifications: "Уведомления", profile: "Профиль", security: "Безопасность"
+  achievements: "Достижения", goals: "Цели", notifications: "Уведомления", profile: "Профиль", security: "Безопасность", admin: "Админка"
 };
 const eventNames = {
   login: "Вход в аккаунт", test_started: "Начат тест", test_completed: "Тест завершён",
@@ -49,6 +51,8 @@ const state = {
   goalsError: null,
   notifications: null,
   notificationsError: null,
+  isAdmin: false,
+  pendingAdmin: false,
   authMode: "login",
   loading: false
 };
@@ -161,6 +165,8 @@ function renderChart(target, activities) {
 }
 
 function renderSignedOut() {
+  document.querySelector("#logout-button").hidden = true;
+  if (document.querySelector('[data-view="admin"]').classList.contains("is-active")) openRoute("overview");
   document.querySelector("#signed-out-banner").hidden = false;
   document.querySelector("#overview-action").hidden = false;
   setAvatar(document.querySelector("#topbar-avatar"), "n");
@@ -385,6 +391,7 @@ function updateProfileUI() {
     timezone: profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || ""
   })) form.elements.namedItem(name).value = value;
   document.querySelector("#signout-button").disabled = !state.user;
+  document.querySelector("#logout-button").hidden = !state.user;
 }
 
 function setConnectionStatus(kind, text) {
@@ -472,6 +479,62 @@ async function loadUserData() {
   }
   updateProfileUI();
   renderOverview();
+  await checkAdmin();
+}
+
+async function checkAdmin() {
+  state.isAdmin = false;
+  try {
+    // Права проверяет сервер: строка в admins видна только её владельцу (RLS).
+    const { data, error } = await state.client.from("admins").select("user_id").eq("user_id", state.user.id).maybeSingle();
+    state.isAdmin = !error && Boolean(data);
+  } catch {
+    state.isAdmin = false;
+  }
+  if (state.pendingAdmin) {
+    state.pendingAdmin = false;
+    if (state.isAdmin) openRoute("admin");
+    else showToast("У этого аккаунта нет доступа к админке.", "error");
+  } else if (state.isAdmin && location.hash === "#admin") {
+    openRoute("admin");
+  }
+  if (state.isAdmin && document.querySelector('[data-view="admin"]').classList.contains("is-active")) loadAdmin();
+}
+
+function openAdmin() {
+  if (!state.client || !state.user) {
+    state.pendingAdmin = true;
+    return openAuth("login");
+  }
+  if (!state.isAdmin) return showToast("У этого аккаунта нет доступа к админке.", "error");
+  openRoute("admin");
+}
+
+async function loadAdmin() {
+  if (!state.isAdmin) return;
+  const errorBox = document.querySelector("#admin-error");
+  clearError(errorBox);
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const count = (query) => query.then(({ count: total, error }) => { if (error) throw error; return total ?? 0; });
+  try {
+    const [users, events, fresh, recent, list] = await Promise.all([
+      count(state.client.from("profiles").select("id", { count: "exact", head: true })),
+      count(state.client.from("user_activity").select("id", { count: "exact", head: true })),
+      count(state.client.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", weekAgo)),
+      state.client.from("user_activity").select("user_id").gte("created_at", weekAgo).limit(5000),
+      state.client.from("profiles").select("display_name,username,preferred_language,created_at").order("created_at", { ascending: false }).limit(50)
+    ]);
+    if (recent.error) throw recent.error;
+    if (list.error) throw list.error;
+    setMetric("admin-users", String(users));
+    setMetric("admin-events", String(events));
+    setMetric("admin-new", String(fresh));
+    setMetric("admin-active", String(new Set((recent.data || []).map((row) => row.user_id)).size));
+    const rows = (list.data || []).map((row) => `<tr><td>${escapeHTML(row.display_name || "—")}</td><td class="muted">${escapeHTML(row.username || "—")}</td><td class="muted">${escapeHTML((row.preferred_language || "ru").toUpperCase())}</td><td class="muted">${escapeHTML(formatDate(row.created_at, { day: "numeric", month: "short", year: "numeric" }))}</td></tr>`);
+    setMarkup(document.querySelector("#admin-users-body"), rows.join("") || '<tr><td colspan="4" class="muted">Пользователей пока нет.</td></tr>');
+  } catch (error) {
+    setError(errorBox, explainError(error, "Не удалось загрузить данные админки. Применена ли миграция 20261115120000_account_admin.sql?"));
+  }
 }
 
 async function loadAchievements() {
@@ -491,6 +554,8 @@ async function loadAchievements() {
 }
 
 function clearUserData() {
+  state.isAdmin = false;
+  state.pendingAdmin = false;
   state.profile = null;
   state.profileError = null;
   state.profileError = null;
@@ -541,7 +606,8 @@ function openAuth(mode = "login") {
 }
 
 function openRoute(route) {
-  const page = pageNames[route] ? route : "overview";
+  let page = pageNames[route] ? route : "overview";
+  if (page === "admin" && !state.isAdmin) page = "overview";
   document.querySelectorAll("[data-view]").forEach((view) => view.classList.toggle("is-active", view.dataset.view === page));
   document.querySelectorAll(".nav-link").forEach((link) => {
     const active = link.dataset.route === page;
@@ -552,6 +618,7 @@ function openRoute(route) {
   document.querySelector(".nav-link.is-active")?.scrollIntoView({ block: "nearest", inline: "center" });
   window.scrollTo({ top: 0 });
   document.title = `${pageNames[page]} — nmchv Account`;
+  if (page === "admin") loadAdmin();
   if (!hasAuthCallback()) {
     const url = new URL(location.href);
     url.hash = page;
@@ -735,6 +802,9 @@ function bindEvents() {
   document.querySelector("#auth-form").addEventListener("submit", submitAuth);
   document.querySelector("#profile-form").addEventListener("submit", saveProfile);
   document.querySelector("#goal-form").addEventListener("submit", createGoal);
+  document.querySelector("#logout-button").addEventListener("click", () => signOut("local"));
+  document.querySelector("#admin-button").addEventListener("click", openAdmin);
+  document.querySelector("#admin-refresh").addEventListener("click", loadAdmin);
   document.querySelector("#signout-current").addEventListener("click", () => signOut("local"));
   document.querySelector("#signout-button").addEventListener("click", () => signOut("global"));
   document.querySelector("#add-goal-button").addEventListener("click", () => state.user ? openGoalDialog() : openAuth("login"));

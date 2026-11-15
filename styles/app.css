@@ -262,6 +262,19 @@ h1 { margin-top: 16px; font-size: var(--fs-h1); font-weight: 600; line-height: 1
 .security-actions .button { margin-left: 0; }
 .security-card--muted { opacity: .7; }
 
+/* ---------- Админка ---------- */
+.footer-admin { display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; color: inherit; background: none; font-size: inherit; transition: color .25s var(--ease); }
+.footer-admin:hover { color: var(--color-accent-hover); }
+.footer-admin [data-icon] { width: 15px; height: 15px; }
+#admin-error { margin-bottom: 14px; }
+.table-wrap { margin-top: 14px; overflow-x: auto; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
+.admin-table th { padding: 10px 12px; border-bottom: 1px solid var(--color-border); color: var(--color-text-secondary); font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-align: left; text-transform: uppercase; white-space: nowrap; }
+.admin-table td { padding: 12px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+.admin-table tr:last-child td { border-bottom: 0; }
+.admin-table td:first-child { font-weight: 600; }
+.admin-table .muted { color: var(--color-text-secondary); font-weight: 400; }
+
 /* ---------- Кнопки ---------- */
 .button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 10px; padding: 0 20px; border: 1px solid transparent; border-radius: var(--radius); font-size: .95rem; font-weight: 600; line-height: 1.2; transition: background-color .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), transform .35s var(--ease), box-shadow .35s var(--ease); }
 .button:disabled { opacity: .45; cursor: not-allowed; }
