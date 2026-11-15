@@ -267,13 +267,53 @@ h1 { margin-top: 16px; font-size: var(--fs-h1); font-weight: 600; line-height: 1
 .footer-admin:hover { color: var(--color-accent-hover); }
 .footer-admin [data-icon] { width: 15px; height: 15px; }
 #admin-error { margin-bottom: 14px; }
+.muted { color: var(--color-text-secondary); font-weight: 400; }
+.muted.block { display: block; margin-top: 2px; }
 .table-wrap { margin-top: 14px; overflow-x: auto; }
 .admin-table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
 .admin-table th { padding: 10px 12px; border-bottom: 1px solid var(--color-border); color: var(--color-text-secondary); font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-align: left; text-transform: uppercase; white-space: nowrap; }
-.admin-table td { padding: 12px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+.admin-table td { padding: 12px; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
 .admin-table tr:last-child td { border-bottom: 0; }
-.admin-table td:first-child { font-weight: 600; }
-.admin-table .muted { color: var(--color-text-secondary); font-weight: 400; }
+.admin-table tr.is-clickable { cursor: pointer; transition: background-color .2s var(--ease); }
+.admin-table tr.is-clickable:hover { background: var(--color-surface-elevated); }
+.admin-table td .muted { font-size: var(--fs-xs); }
+.admin-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.admin-tab { min-height: 38px; padding: 0 16px; border: 1px solid var(--color-border); border-radius: 999px; color: var(--color-text-secondary); background: transparent; font-size: var(--fs-small); transition: color .25s var(--ease), border-color .25s var(--ease), background-color .25s var(--ease); }
+.admin-tab:hover { color: var(--color-text-primary); border-color: var(--color-accent); }
+.admin-tab.is-active { color: var(--color-text-primary); border-color: var(--color-accent); background: var(--accent-soft); font-weight: 600; }
+.admin-search, .admin-select, .admin-mini input, .admin-notify input, .admin-notify textarea { min-height: 40px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius); outline: 0; color: var(--color-text-primary); background: var(--color-background); font-size: var(--fs-small); transition: border-color .2s var(--ease); }
+.admin-search { width: min(280px, 100%); }
+.admin-search:focus, .admin-select:focus, .admin-mini input:focus, .admin-notify input:focus, .admin-notify textarea:focus { border-color: var(--color-accent); }
+.admin-notify textarea { min-height: 84px; resize: vertical; }
+.admin-user-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin: 22px 0 24px; }
+.admin-user-head h2 { font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); font-weight: 600; letter-spacing: -.02em; }
+.admin-user-head p { margin-top: 4px; font-size: var(--fs-small); }
+.admin-bio { max-width: 40em; color: var(--color-text-primary); }
+.admin-user-dates { font-size: var(--fs-xs); line-height: 1.7; text-align: right; white-space: nowrap; }
+.admin-section { margin-bottom: 14px; }
+.admin-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+.admin-two .admin-section { margin-bottom: 0; }
+.admin-list { display: grid; margin-top: 12px; font-size: var(--fs-small); }
+.admin-line { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
+.admin-line:last-child { border-bottom: 0; }
+.admin-line--block { align-items: flex-start; }
+.admin-line > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.admin-line > .muted:last-child { flex: none; font-size: var(--fs-xs); text-align: right; }
+.admin-inline { display: flex; gap: 10px; margin-top: 14px; }
+.admin-inline .admin-select { flex: 1; min-width: 0; }
+.admin-notify { display: grid; gap: 10px; margin-top: 14px; }
+.admin-notify button { justify-self: start; }
+.admin-access { display: grid; margin-top: 8px; }
+.admin-access-row { display: grid; grid-template-columns: minmax(150px, 1.2fr) 104px minmax(110px, 1fr) minmax(140px, 1fr) 190px; align-items: end; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--color-border); }
+.admin-access-row:last-child { border-bottom: 0; }
+.admin-access-name { display: grid; gap: 2px; align-self: center; }
+.admin-access-name .muted { font-size: var(--fs-xs); }
+.admin-mini { display: grid; gap: 6px; color: var(--color-text-secondary); font-size: var(--fs-xs); }
+.admin-mini input { width: 100%; }
+.admin-row-actions { display: flex; gap: 8px; }
+.admin-badge { display: inline-flex; align-items: center; align-self: center; justify-self: start; padding: 3px 10px; border: 1px solid var(--color-border); border-radius: 999px; color: var(--color-text-secondary); font-size: .75rem; white-space: nowrap; }
+.admin-badge--active { border-color: color-mix(in srgb, var(--color-ok) 40%, transparent); color: var(--color-ok); }
+.admin-badge--revoked, .admin-badge--expired { border-color: color-mix(in srgb, var(--color-bad) 40%, transparent); color: var(--color-bad); }
 
 /* ---------- Кнопки ---------- */
 .button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 10px; padding: 0 20px; border: 1px solid transparent; border-radius: var(--radius); font-size: .95rem; font-weight: 600; line-height: 1.2; transition: background-color .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), transform .35s var(--ease), box-shadow .35s var(--ease); }
@@ -319,6 +359,12 @@ h1 { margin-top: 16px; font-size: var(--fs-h1); font-weight: 600; line-height: 1
   .achievement-grid, .goal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {
+  .admin-two { grid-template-columns: 1fr; }
+  .admin-access-row { grid-template-columns: 1fr 1fr; }
+  .admin-badge { grid-column: 1 / -1; }
+  .admin-access-name, .admin-row-actions { grid-column: 1 / -1; }
+  .admin-user-head { flex-direction: column; gap: 12px; }
+  .admin-user-dates { text-align: left; white-space: normal; }
   .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .overview-lower { grid-template-columns: 1fr; }
 }

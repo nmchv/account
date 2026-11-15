@@ -10,6 +10,7 @@
 
 1. В репозитории [Exam Trainer](https://github.com/nmchv/exam_trainer) выполните `supabase link --project-ref wdijrafblddfcqfbtfmr` и `supabase db push`.
 2. В Supabase SQL Editor выполните `supabase/migrations/20261115000000_account_core.sql`.
+3. Для админки по очереди выполните `20261115120000_account_admin.sql` и `20261115130000_account_admin_full.sql`, затем назначьте администратора (запрос — в конце первого из этих файлов).
 
 URL для Supabase Auth заданы в `supabase/config.toml`. После настройки DNS примените их командой `supabase config push --remote=wdijrafblddfcqfbtfmr` из этого репозитория. При смене домена обновите `auth.site_url` и `auth.additional_redirect_urls`.
 
@@ -23,6 +24,10 @@ URL для Supabase Auth заданы в `supabase/config.toml`. После на
 - Единый каталог ссылок на Exam Trainer и GeoTrainer, профиль с общим `auth.users.id`, журнал завершённых попыток Exam Trainer и перенос истории GeoTrainer с выбранного локального профиля.
 - RLS-политики и схема кабинета находятся в `supabase/migrations/20261115000000_account_core.sql`.
 - PWA-манифест и service worker, кэширующий только статическую оболочку приложения.
+
+## Админка
+
+Кнопка «Админка» в подвале. Администратор видит список всех пользователей, карточку каждого (профиль, статистика, история активности, цели, достижения, уведомления, данные сервисов), выдаёт и отзывает доступы к сервисам, выдаёт достижения, отправляет уведомления и меняет статус и видимость сервисов. Права проверяет Supabase (RLS), а не интерфейс.
 
 ## Ограничения интеграции
 

@@ -1,4 +1,5 @@
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./config.js";
+import { createAdmin } from "./admin.js";
 
 const icons = {
   overview: '<rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/>',
@@ -510,31 +511,8 @@ function openAdmin() {
   openRoute("admin");
 }
 
-async function loadAdmin() {
-  if (!state.isAdmin) return;
-  const errorBox = document.querySelector("#admin-error");
-  clearError(errorBox);
-  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const count = (query) => query.then(({ count: total, error }) => { if (error) throw error; return total ?? 0; });
-  try {
-    const [users, events, fresh, recent, list] = await Promise.all([
-      count(state.client.from("profiles").select("id", { count: "exact", head: true })),
-      count(state.client.from("user_activity").select("id", { count: "exact", head: true })),
-      count(state.client.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", weekAgo)),
-      state.client.from("user_activity").select("user_id").gte("created_at", weekAgo).limit(5000),
-      state.client.from("profiles").select("display_name,username,preferred_language,created_at").order("created_at", { ascending: false }).limit(50)
-    ]);
-    if (recent.error) throw recent.error;
-    if (list.error) throw list.error;
-    setMetric("admin-users", String(users));
-    setMetric("admin-events", String(events));
-    setMetric("admin-new", String(fresh));
-    setMetric("admin-active", String(new Set((recent.data || []).map((row) => row.user_id)).size));
-    const rows = (list.data || []).map((row) => `<tr><td>${escapeHTML(row.display_name || "—")}</td><td class="muted">${escapeHTML(row.username || "—")}</td><td class="muted">${escapeHTML((row.preferred_language || "ru").toUpperCase())}</td><td class="muted">${escapeHTML(formatDate(row.created_at, { day: "numeric", month: "short", year: "numeric" }))}</td></tr>`);
-    setMarkup(document.querySelector("#admin-users-body"), rows.join("") || '<tr><td colspan="4" class="muted">Пользователей пока нет.</td></tr>');
-  } catch (error) {
-    setError(errorBox, explainError(error, "Не удалось загрузить данные админки. Применена ли миграция 20261115120000_account_admin.sql?"));
-  }
+function loadAdmin() {
+  return admin.load();
 }
 
 async function loadAchievements() {
@@ -554,6 +532,7 @@ async function loadAchievements() {
 }
 
 function clearUserData() {
+  admin.reset();
   state.isAdmin = false;
   state.pendingAdmin = false;
   state.profile = null;
@@ -804,7 +783,6 @@ function bindEvents() {
   document.querySelector("#goal-form").addEventListener("submit", createGoal);
   document.querySelector("#logout-button").addEventListener("click", () => signOut("local"));
   document.querySelector("#admin-button").addEventListener("click", openAdmin);
-  document.querySelector("#admin-refresh").addEventListener("click", loadAdmin);
   document.querySelector("#signout-current").addEventListener("click", () => signOut("local"));
   document.querySelector("#signout-button").addEventListener("click", () => signOut("global"));
   document.querySelector("#add-goal-button").addEventListener("click", () => state.user ? openGoalDialog() : openAuth("login"));
@@ -820,6 +798,8 @@ function bindEvents() {
   });
   window.addEventListener("hashchange", () => openRoute(location.hash.slice(1)));
 }
+
+const admin = createAdmin({ state, escapeHTML, setMarkup, setMetric, setError, clearError, showToast, explainError, formatDate, eventNames });
 
 async function initialize() {
   renderStaticIcons();

@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles/tokens.css">
-    <link rel="stylesheet" href="./styles/app.css?v=7">
+    <link rel="stylesheet" href="./styles/app.css?v=8">
     <script type="module" src="./scripts/app.js"></script>
   </head>
   <body>
@@ -187,15 +187,37 @@
             </div>
           </section>
           <section class="view" data-view="admin">
-            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ДЛЯ АДМИНИСТРАТОРА</div><h1>Админка<span class="heading-period">.</span></h1><p class="page-description">Обзор пользователей и активности экосистемы. Только чтение.</p></div><button class="button button--secondary" id="admin-refresh" type="button">Обновить</button></div>
+            <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ДЛЯ АДМИНИСТРАТОРА</div><h1>Админка<span class="heading-period">.</span></h1><p class="page-description">Пользователи, их данные и доступы к сервисам.</p></div><button class="button button--secondary" id="admin-refresh" type="button">Обновить</button></div>
             <div class="inline-error" id="admin-error" role="alert" hidden></div>
-            <div class="metric-grid metric-grid--statistics">
-              <article class="metric-card"><div class="metric-top"><span class="metric-label">Пользователей</span><span class="metric-icon metric-icon--blue" data-icon="profile"></span></div><div class="metric-value" id="admin-users">—</div><div class="metric-foot">Всего профилей</div></article>
-              <article class="metric-card"><div class="metric-top"><span class="metric-label">Событий</span><span class="metric-icon metric-icon--violet" data-icon="activity"></span></div><div class="metric-value" id="admin-events">—</div><div class="metric-foot">За всё время</div></article>
-              <article class="metric-card"><div class="metric-top"><span class="metric-label">Новых за 7 дней</span><span class="metric-icon metric-icon--mint" data-icon="trend"></span></div><div class="metric-value" id="admin-new">—</div><div class="metric-foot">Регистрации</div></article>
-              <article class="metric-card"><div class="metric-top"><span class="metric-label">Активных за 7 дней</span><span class="metric-icon metric-icon--amber" data-icon="check"></span></div><div class="metric-value" id="admin-active">—</div><div class="metric-foot">Есть события</div></article>
+
+            <div id="admin-list-view">
+              <div class="admin-tabs" role="tablist">
+                <button class="admin-tab is-active" type="button" role="tab" data-admin-action="tab" data-tab="users">Пользователи</button>
+                <button class="admin-tab" type="button" role="tab" data-admin-action="tab" data-tab="projects">Сервисы</button>
+              </div>
+
+              <div id="admin-users-panel">
+                <div class="metric-grid metric-grid--statistics">
+                  <article class="metric-card"><div class="metric-top"><span class="metric-label">Пользователей</span><span class="metric-icon metric-icon--blue" data-icon="profile"></span></div><div class="metric-value" id="admin-users">—</div><div class="metric-foot">Всего аккаунтов</div></article>
+                  <article class="metric-card"><div class="metric-top"><span class="metric-label">Событий</span><span class="metric-icon metric-icon--violet" data-icon="activity"></span></div><div class="metric-value" id="admin-events">—</div><div class="metric-foot">За всё время</div></article>
+                  <article class="metric-card"><div class="metric-top"><span class="metric-label">Новых за 7 дней</span><span class="metric-icon metric-icon--mint" data-icon="trend"></span></div><div class="metric-value" id="admin-new">—</div><div class="metric-foot">Регистрации</div></article>
+                  <article class="metric-card"><div class="metric-top"><span class="metric-label">Активных за 7 дней</span><span class="metric-icon metric-icon--amber" data-icon="check"></span></div><div class="metric-value" id="admin-active">—</div><div class="metric-foot">Есть события</div></article>
+                </div>
+                <section class="panel page-panel">
+                  <div class="panel-heading"><div><h2>Пользователи</h2><p id="admin-users-count">—</p></div><input class="admin-search" id="admin-search" type="search" placeholder="Поиск по почте или имени" aria-label="Поиск пользователей"></div>
+                  <div class="table-wrap"><table class="admin-table"><thead><tr><th>Пользователь</th><th>Username</th><th>События</th><th>Активность</th><th>Регистрация</th><th></th></tr></thead><tbody id="admin-users-body"></tbody></table></div>
+                </section>
+              </div>
+
+              <div id="admin-projects-panel" hidden>
+                <section class="panel page-panel">
+                  <div class="panel-heading"><div><h2>Сервисы</h2><p>Статус и видимость в каталоге кабинета</p></div></div>
+                  <div class="table-wrap"><table class="admin-table"><thead><tr><th>Сервис</th><th>Статус</th><th>Видимость</th><th></th></tr></thead><tbody id="admin-projects-body"></tbody></table></div>
+                </section>
+              </div>
             </div>
-            <section class="panel page-panel"><div class="panel-heading"><div><h2>Пользователи</h2><p>Последние 50 регистраций</p></div></div><div class="table-wrap"><table class="admin-table"><thead><tr><th>Имя</th><th>Username</th><th>Язык</th><th>Регистрация</th></tr></thead><tbody id="admin-users-body"></tbody></table></div></section>
+
+            <div id="admin-user-view" hidden></div>
           </section>
     </main>
 
