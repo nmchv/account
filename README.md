@@ -11,6 +11,8 @@
 1. В репозитории [Exam Trainer](https://github.com/nmchv/exam_trainer) выполните `supabase link --project-ref wdijrafblddfcqfbtfmr` и `supabase db push`.
 2. В Supabase SQL Editor выполните `supabase/migrations/20261115000000_account_core.sql`.
 
+URL для Supabase Auth заданы в `supabase/config.toml`. После настройки DNS примените их командой `supabase config push --remote=wdijrafblddfcqfbtfmr` из этого репозитория. При смене домена обновите `auth.site_url` и `auth.additional_redirect_urls`.
+
 Никогда не помещайте `service_role` key в браузерный код.
 
 ## Что реализовано

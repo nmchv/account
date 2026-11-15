@@ -1,0 +1,12 @@
+project_id = "account"
+
+[auth]
+site_url = "https://www.login.nmchv.ru"
+additional_redirect_urls = [
+  "https://www.login.nmchv.ru/**",
+  "https://exam.nmchv.ru/**",
+  "https://www.geotrainer.nmchv.ru/**",
+  "http://127.0.0.1:4173/**",
+  "http://127.0.0.1:8765/**",
+  "http://127.0.0.1:8766/**",
+]
