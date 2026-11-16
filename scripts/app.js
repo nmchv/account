@@ -1006,9 +1006,7 @@ function openAuth(mode = "login") {
   renderAuthMode();
   const screen = document.querySelector("#auth-screen");
   if (screen) screen.hidden = false;
-  const configNote = document.querySelector("#auth-config-note");
-  configNote.hidden = Boolean(state.client);
-  configNote.textContent = state.configError || state.connectionError || "Авторизация пока не подключена. Укажите публичные параметры Supabase в scripts/config.js.";
+  showAuthConfigNote();
   const form = document.querySelector("#auth-form");
   if (form) {
     form.querySelectorAll("input, button, select").forEach((input) => { input.disabled = !state.client; });
@@ -1435,11 +1433,14 @@ async function initialize() {
     setConnectionStatus("error", "Проверьте настройки");
     state.configError = config.error;
     renderSignedOut();
+    showAuthConfigNote();
     return;
   }
   if (!config.configured) {
     setConnectionStatus("error", "Supabase не подключён");
+    state.configError = "Не заданы SUPABASE_URL и SUPABASE_ANON_KEY в scripts/config.js.";
     renderSignedOut();
+    showAuthConfigNote();
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
       navigator.serviceWorker.register("./sw.js").catch((error) => console.error("Не удалось зарегистрировать service worker:", error));
     }
@@ -1489,8 +1490,8 @@ async function initialize() {
     state.connectionError = explainError(error, "Не удалось подключиться к Supabase");
     state.client = null;
     renderSignedOut();
+    showAuthConfigNote();
     showToast(explainError(error, "Не удалось подключиться к Supabase"), "error");
-    console.error("Ошибка подключения nmchv Account:", error);
   }
 }
 
