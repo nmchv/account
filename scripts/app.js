@@ -60,6 +60,8 @@ const state = {
   chartDays: 14,
   chartProject: "all",
   geoAttempts: [],
+  geoLink: null,
+  geoLinkError: null,
   tasks: [],
   weather: null
 };
@@ -372,7 +374,9 @@ function renderInteractiveStatistics() {
     const attempts = state.geoAttempts || [];
     const accuracy = attempts.flatMap((attempt) => extractAccuracyValues(attempt.attempt_data));
     const average = accuracy.length ? Math.round(accuracy.reduce((sum, value) => sum + value, 0) / accuracy.length) : null;
-    geoCard = `<article class="stats-service panel"><div><strong>GeoTrainer</strong><span>${attempts.length} попыток · ${average === null ? "нет данных о точности" : `${average}% средняя точность`}</span></div><div class="stats-service-track"><i style="width:${average ?? 0}%"></i></div><small>${attempts[0] ? `Последняя попытка: ${escapeHTML(relativeDate(attempts[0].created_at))}` : "Попыток пока нет"}</small></article>`;
+    const link = state.geoLink;
+    const linkNote = link ? `Связан с логином «${escapeHTML(link.legacy_name || link.legacy_key || "")}» (${escapeHTML(link.email || "")})` : "Логин Геотренажёра не связан — откройте кабинет в Геотренажёре, чтобы привязать";
+    geoCard = `<article class="stats-service panel"><div><strong>GeoTrainer</strong><span>${attempts.length} попыток · ${average === null ? "нет данных о точности" : `${average}% средняя точность`}</span></div><div class="stats-service-track"><i style="width:${average ?? 0}%"></i></div><small>${linkNote}${attempts[0] ? ` · последняя попытка: ${escapeHTML(relativeDate(attempts[0].created_at))}` : ""}</small></article>`;
   }
   setMarkup(document.querySelector("#stats-breakdown"), `${geoCard}${breakdown}` || showEmpty("Сервисы появятся здесь", "Подключённые сервисы будут добавлены автоматически."));
 }
@@ -431,6 +435,8 @@ function renderSignedOut() {
   state.tasks = [];
   state.geoAttempts = [];
   state.geoAttemptsError = null;
+  state.geoLink = null;
+  state.geoLinkError = null;
   const chartLegend = document.querySelector("#activity-chart").parentElement.nextElementSibling.querySelector("span:first-child");
   chartLegend.innerHTML = `<i></i> Нет данных об активности`;
 }
@@ -757,7 +763,8 @@ async function loadUserData() {
     ["achievements", loadAchievements()],
     ["goals", state.client.from("user_goals").select("id,title,metric,target_value,current_value,period,created_at").eq("user_id", state.user.id).order("created_at", { ascending: false })],
     ["notifications", state.client.from("notifications").select("id,type,title,body,is_read,created_at").eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(50)],
-    ["geoAttempts", state.client.from("geotrainer_attempts").select("created_at,attempt_data").eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(50)]
+    ["geoAttempts", state.client.from("geotrainer_attempts").select("created_at,attempt_data").eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(50)],
+    ["geoLink", state.client.from("geotrainer_links").select("legacy_key,legacy_name,email,linked_at,updated_at").eq("user_id", state.user.id).maybeSingle()]
   ];
   state.tasks = readTasks();
   const results = await Promise.allSettled(work.map(([, request]) => request));
@@ -766,6 +773,7 @@ async function loadUserData() {
     const result = results[index];
     if (result.status === "rejected") {
       if (key === "geoAttempts") { state.geoAttempts = []; state.geoAttemptsError = null; }
+      else if (key === "geoLink") { state.geoLink = null; state.geoLinkError = null; }
       else {
         state[`${key}Error`] = explainError(result.reason, `Не удалось загрузить ${key === "profile" ? "профиль" : key}`);
         if (key === "profile") state.profile = null;
@@ -776,6 +784,7 @@ async function loadUserData() {
     const value = result.value;
     if (value?.error) {
       if (key === "geoAttempts") { state.geoAttempts = []; state.geoAttemptsError = null; }
+      else if (key === "geoLink") { state.geoLink = null; state.geoLinkError = null; }
       else {
         state[`${key}Error`] = explainError(value.error, `Не удалось загрузить ${key === "profile" ? "профиль" : key}`);
         state[key === "activities" ? "activities" : key] = null;
@@ -784,6 +793,7 @@ async function loadUserData() {
       state[`${key}Error`] = null;
       if (key === "activities") state.activities = value.data || [];
       else if (key === "geoAttempts") state.geoAttempts = value.data || [];
+      else if (key === "geoLink") state.geoLink = value.data || null;
       else state[key] = value.data;
     }
   }
@@ -858,6 +868,8 @@ function clearUserData() {
   state.notificationsError = null;
   state.geoAttempts = [];
   state.geoAttemptsError = null;
+  state.geoLink = null;
+  state.geoLinkError = null;
   state.tasks = [];
   state.weather = null;
   state.chartDays = 14;
