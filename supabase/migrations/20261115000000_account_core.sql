@@ -263,7 +263,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  project_id uuid;
+  v_project_id uuid;
 begin
   if new.status <> 'completed' then
     return new;
@@ -272,10 +272,10 @@ begin
     return new;
   end if;
 
-  select p.id into project_id
+  select p.id into v_project_id
   from public.projects p
   where p.slug = 'exam-trainer';
-  if project_id is null then
+  if v_project_id is null then
     raise exception 'Project registry entry exam-trainer is missing';
   end if;
 
@@ -283,7 +283,7 @@ begin
     user_id, project_id, event_type, source_event_id, metadata, created_at
   )
   values (
-    new.user_id, project_id, 'test_completed', 'exam:' || new.id::text,
+    new.user_id, v_project_id, 'test_completed', 'exam:' || new.id::text,
     jsonb_build_object('exam_id', new.exam_id, 'score', new.score, 'max_score', new.max_score, 'percentage', new.percentage),
     coalesce(new.finished_at, now())
   )
@@ -304,12 +304,12 @@ security definer
 set search_path = ''
 as $$
 declare
-  project_id uuid;
+  v_project_id uuid;
 begin
-  select p.id into project_id
+  select p.id into v_project_id
   from public.projects p
   where p.slug = 'geotrainer';
-  if project_id is null then
+  if v_project_id is null then
     raise exception 'Project registry entry geotrainer is missing';
   end if;
 
@@ -317,7 +317,7 @@ begin
     user_id, project_id, event_type, source_event_id, metadata, created_at
   )
   values (
-    new.user_id, project_id, 'test_completed', 'geo:' || new.source_id,
+    new.user_id, v_project_id, 'test_completed', 'geo:' || new.source_id,
     jsonb_build_object('legacy_username', new.legacy_username),
     new.created_at
   )
