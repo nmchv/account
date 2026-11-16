@@ -28,7 +28,8 @@ const icons = {
 
 const pageNames = {
   overview: "Обзор", projects: "Проекты", activity: "Активность", statistics: "Статистика",
-  achievements: "Достижения", goals: "Цели", notifications: "Уведомления", profile: "Профиль", security: "Безопасность", admin: "Админка"
+  achievements: "Достижения", goals: "Цели", notifications: "Уведомления", profile: "Профиль",
+  settings: "Настройки", security: "Безопасность", admin: "Админка"
 };
 const eventNames = {
   login: "Вход в аккаунт", test_started: "Начат тест", test_completed: "Тест завершён",
@@ -55,7 +56,12 @@ const state = {
   isAdmin: false,
   pendingAdmin: false,
   authMode: "login",
-  loading: false
+  loading: false,
+  chartDays: 14,
+  chartProject: "all",
+  geoAttempts: [],
+  tasks: [],
+  weather: null
 };
 
 function icon(name, className = "") {
@@ -76,6 +82,15 @@ function formatDate(value, options = { day: "numeric", month: "short" }) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Дата не указана";
   return new Intl.DateTimeFormat("ru-RU", options).format(date);
+}
+
+function dateKey(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function relativeDate(value) {
@@ -145,14 +160,14 @@ function renderChart(target, activities) {
   if (!target) return;
   const countByDay = new Map();
   for (const activity of activities || []) {
-    const day = new Date(activity.created_at).toISOString().slice(0, 10);
+    const day = dateKey(activity.created_at);
     countByDay.set(day, (countByDay.get(day) || 0) + 1);
   }
   const days = Array.from({ length: 14 }, (_, index) => {
     const date = new Date();
     date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() - (13 - index));
-    const key = date.toISOString().slice(0, 10);
+    const key = dateKey(date);
     return { key, label: new Intl.DateTimeFormat("ru-RU", { day: "numeric" }).format(date), count: countByDay.get(key) || 0 };
   });
   const peak = Math.max(1, ...days.map(({ count }) => count));
@@ -165,9 +180,212 @@ function renderChart(target, activities) {
   if (legend) legend.innerHTML = `<i></i> ${activities?.length ? "События активности" : "Нет данных об активности"}`;
 }
 
+function getGreeting(timezone) {
+  let hour = new Date().getHours();
+  if (timezone) {
+    try {
+      hour = Number(new Intl.DateTimeFormat("ru-RU", {
+        hour: "2-digit",
+        hourCycle: "h23",
+        timeZone: timezone
+      }).format(new Date()));
+    } catch (error) {
+      console.warn("Некорректный часовой пояс профиля:", error);
+    }
+  }
+  if (hour < 6) return "Доброй ночи";
+  if (hour < 12) return "Доброе утро";
+  if (hour < 18) return "Добрый день";
+  return "Добрый вечер";
+}
+
+const weatherDescriptions = {
+  0: "Ясно", 1: "Преимущественно ясно", 2: "Переменная облачность", 3: "Облачно",
+  45: "Туман", 48: "Изморозь", 51: "Морось", 53: "Морось", 55: "Сильная морось",
+  56: "Ледяная морось", 57: "Ледяная морось", 61: "Небольшой дождь", 63: "Дождь",
+  65: "Сильный дождь", 66: "Ледяной дождь", 67: "Ледяной дождь", 71: "Небольшой снег",
+  73: "Снег", 75: "Сильный снег", 77: "Снежные зёрна", 80: "Ливень", 81: "Ливень",
+  82: "Сильный ливень", 85: "Снегопад", 86: "Сильный снегопад", 95: "Гроза",
+  96: "Гроза с градом", 99: "Сильная гроза"
+};
+
+async function loadWeather() {
+  if (!state.user) return;
+  const city = (readProfilePrefs().weather_city || "").trim() || "Ростов-на-Дону";
+  const geocodeUrl = new URL("https://geocoding-api.open-meteo.com/v1/search");
+  geocodeUrl.search = new URLSearchParams({ name: city, count: "1", language: "ru", format: "json" });
+  const geocodeResponse = await fetch(geocodeUrl);
+  if (!geocodeResponse.ok) throw new Error(`Сервис поиска города ответил ${geocodeResponse.status}.`);
+  const geocode = await geocodeResponse.json();
+  const place = geocode.results?.[0];
+  if (!place) throw new Error(`Не удалось найти город «${city}».`);
+
+  const forecastUrl = new URL("https://api.open-meteo.com/v1/forecast");
+  forecastUrl.search = new URLSearchParams({
+    latitude: String(place.latitude),
+    longitude: String(place.longitude),
+    current: "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m",
+    daily: "sunrise,sunset",
+    timezone: "auto"
+  });
+  const forecastResponse = await fetch(forecastUrl);
+  if (!forecastResponse.ok) throw new Error(`Сервис погоды ответил ${forecastResponse.status}.`);
+  const forecast = await forecastResponse.json();
+  const current = forecast.current;
+  if (!current) throw new Error("Сервис погоды не вернул текущие показатели.");
+
+  state.weather = {
+    ...current,
+    city: place.name,
+    sunrise: forecast.daily?.sunrise?.[0],
+    sunset: forecast.daily?.sunset?.[0]
+  };
+  const description = weatherDescriptions[current.weather_code] || "Переменная погода";
+  document.querySelector("#weather-city").textContent = `${place.name}${place.admin1 ? `, ${place.admin1}` : ""}`;
+  document.querySelector("#weather-summary").textContent = description;
+  document.querySelector("#weather-temperature").textContent = `${Math.round(current.temperature_2m)}°`;
+  document.querySelector("#weather-updated").textContent = `Ощущается как ${Math.round(current.apparent_temperature)}°`;
+  document.querySelector("#weather-scene").classList.toggle("is-rainy", current.precipitation > 0 || current.weather_code >= 51);
+  document.querySelector("#weather-scene").classList.toggle("is-night", !current.is_day);
+  document.querySelector("#weather-dialog-title").textContent = place.name;
+  document.querySelector("#weather-detail-temperature").textContent = `${Math.round(current.temperature_2m)}°`;
+  document.querySelector("#weather-detail-summary").textContent = description;
+  document.querySelector("#weather-detail-icon").textContent = current.weather_code >= 51 ? "☂" : current.is_day ? "☀" : "☾";
+  const details = [
+    ["Ощущается как", `${Math.round(current.apparent_temperature)}°`],
+    ["Влажность", `${Math.round(current.relative_humidity_2m)}%`],
+    ["Ветер", `${Math.round(current.wind_speed_10m)} км/ч`],
+    ["Осадки", `${Number(current.precipitation).toLocaleString("ru-RU")} мм`],
+    ["Восход", forecast.daily?.sunrise?.[0] ? formatDate(forecast.daily.sunrise[0], { hour: "2-digit", minute: "2-digit" }) : "—"],
+    ["Закат", forecast.daily?.sunset?.[0] ? formatDate(forecast.daily.sunset[0], { hour: "2-digit", minute: "2-digit" }) : "—"]
+  ];
+  setMarkup(document.querySelector("#weather-details"), details.map(([label, value]) => `<div><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>`).join(""));
+  const weatherError = document.querySelector("#weather-error");
+  if (weatherError) weatherError.hidden = true;
+}
+
+function renderStreak(activities) {
+  const activeDates = new Set(activities.map((item) => dateKey(item.created_at)));
+  const days = Array.from({ length: 14 }, (_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (13 - index));
+    return { date, active: activeDates.has(dateKey(date)) };
+  });
+  let streak = 0;
+  for (const day of [...days].reverse()) {
+    if (!day.active) break;
+    streak += 1;
+  }
+  const unit = streak === 1 ? "день подряд" : streak > 1 && streak < 5 ? "дня подряд" : "дней подряд";
+  document.querySelector("#streak-count").textContent = `${streak} ${unit}`;
+  setMarkup(document.querySelector("#streak-days"), days.map(({ date, active }) => `<div class="streak-day${active ? " is-active" : ""}" title="${escapeHTML(formatDate(date, { day: "numeric", month: "long" }))}: ${active ? "учились" : "без занятий"}"><span>${escapeHTML(new Intl.DateTimeFormat("ru-RU", { weekday: "short" }).format(date))}</span><i>${date.getDate()}</i></div>`).join(""));
+}
+
+function extractAccuracyValues(value, depth = 0) {
+  if (!value || depth > 5) return [];
+  if (Array.isArray(value)) {
+    const answerFlags = value.map((item) => item && typeof item === "object"
+      ? item.is_correct ?? item.isCorrect ?? item.correct
+      : undefined).filter((flag) => typeof flag === "boolean");
+    if (answerFlags.length === value.length && answerFlags.length > 0) {
+      return [Math.round(answerFlags.filter(Boolean).length / answerFlags.length * 100)];
+    }
+    return value.flatMap((item) => extractAccuracyValues(item, depth + 1));
+  }
+  if (typeof value !== "object") return [];
+  const entries = Object.entries(value);
+  const normalized = new Map(entries.map(([key, item]) => [key.toLowerCase(), item]));
+  const accuracyKey = ["accuracy", "accuracy_percent", "percentage", "percent_correct"].find((key) => normalized.has(key));
+  if (accuracyKey) {
+    const numeric = Number(normalized.get(accuracyKey));
+    if (Number.isFinite(numeric) && numeric >= 0) return [Math.round(numeric <= 1 ? numeric * 100 : Math.min(numeric, 100))];
+  }
+  const correctValue = normalized.get("correct_answers") ?? normalized.get("correct_count") ?? normalized.get("correct");
+  const totalValue = normalized.get("total_answers") ?? normalized.get("total_count") ?? normalized.get("total");
+  const correct = Number(correctValue);
+  const total = Number(totalValue);
+  const ownAccuracy = correctValue !== undefined && totalValue !== undefined && Number.isFinite(correct)
+    && Number.isFinite(total) && total > 0 ? Math.round(correct / total * 100) : null;
+  return [
+    ...(ownAccuracy === null ? [] : [ownAccuracy]),
+    ...entries.flatMap(([, item]) => extractAccuracyValues(item, depth + 1))
+  ];
+}
+
+function renderInteractiveStatistics() {
+  const activities = state.activities || [];
+  const since = Date.now() - state.chartDays * 86_400_000;
+  const selectedProject = state.chartProject;
+  const filtered = activities.filter((item) => new Date(item.created_at).getTime() >= since
+    && (selectedProject === "all" || item.project_id === selectedProject));
+  const counts = new Map();
+  for (const activity of filtered) {
+    const day = dateKey(activity.created_at);
+    counts.set(day, (counts.get(day) || 0) + 1);
+  }
+  const days = Array.from({ length: state.chartDays }, (_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (state.chartDays - 1 - index));
+    return { count: counts.get(dateKey(date)) || 0, date };
+  });
+  const width = 800;
+  const height = 220;
+  const max = Math.max(1, ...days.map(({ count }) => count));
+  const points = days.map(({ count }, index) => ({
+    x: 16 + (index / Math.max(1, days.length - 1)) * (width - 32),
+    y: height - 20 - (count / max) * (height - 46),
+    count
+  }));
+  const line = points.map(({ x, y }, index) => `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const area = `${line} L${points.at(-1)?.x || 0},${height - 20} L${points[0]?.x || 0},${height - 20} Z`;
+  const labels = days.filter((_, index) => index % Math.ceil(days.length / 7) === 0 || index === days.length - 1)
+    .map(({ date }) => `<span>${escapeHTML(formatDate(date, { day: "numeric", month: "short" }))}</span>`).join("");
+  const svg = `<svg class="stats-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="График активности за ${state.chartDays} дней">
+    <defs><linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#6b91ed" stop-opacity=".28"/><stop offset="1" stop-color="#6b91ed" stop-opacity="0"/></linearGradient></defs>
+    ${[0, 1, 2, 3].map((row) => `<line x1="0" x2="${width}" y1="${30 + row * 50}" y2="${30 + row * 50}" class="chart-grid-line"/>`).join("")}
+    <path d="${area}" fill="url(#chart-fill)"/><path d="${line}" class="chart-line"/>
+    ${points.map(({ x, y, count }, index) => `<circle class="chart-point${count ? " has-value" : ""}" data-index="${index}" tabindex="0" role="button" aria-label="${escapeHTML(formatDate(days[index].date, { day: "numeric", month: "long" }))}: ${count} событий" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${count ? 5 : 3}"><title>${escapeHTML(formatDate(days[index].date, { day: "numeric", month: "long" }))}: ${count} событий</title></circle>`).join("")}
+  </svg><div class="chart-x-labels">${labels}</div><div class="chart-insight" id="chart-insight">Нажмите на точку графика, чтобы увидеть день</div>`;
+  setMarkup(document.querySelector("#statistics-chart"), svg);
+  const serviceFilters = document.querySelector("#chart-services");
+  const options = [{ id: "all", name: "Все сервисы" }, ...(state.projects || []).map(({ id, name }) => ({ id, name }))];
+  setMarkup(serviceFilters, options.map(({ id, name }) => `<button class="chart-filter${selectedProject === id ? " is-active" : ""}" type="button" data-project="${escapeHTML(id)}">${escapeHTML(name)}</button>`).join(""));
+  document.querySelectorAll("[data-chart-days]").forEach((button) => {
+    button.classList.toggle("is-active", Number(button.dataset.chartDays) === state.chartDays);
+  });
+
+  const countsByProject = new Map();
+  for (const activity of activities) countsByProject.set(activity.project_id, (countsByProject.get(activity.project_id) || 0) + 1);
+  const breakdown = (state.projects || []).filter((project) => project.slug !== "geotrainer").map((project) => {
+    const count = countsByProject.get(project.id) || 0;
+    const percentage = activities.length ? Math.round((count / activities.length) * 100) : 0;
+    const last = activities.find((item) => item.project_id === project.id);
+    return `<article class="stats-service panel"><div><strong>${escapeHTML(project.name)}</strong><span>${count} событий · ${percentage}% активности</span></div><div class="stats-service-track"><i style="width:${percentage}%"></i></div><small>${last ? `Последнее событие: ${escapeHTML(relativeDate(last.created_at))}` : "Пока без активности"}</small></article>`;
+  }).join("");
+  const geoProject = state.projects?.find((project) => project.slug === "geotrainer");
+  let geoCard = "";
+  if (state.geoAttemptsError) {
+    geoCard = `<div class="inline-error">${escapeHTML(state.geoAttemptsError)}</div>`;
+  } else if (geoProject) {
+    const attempts = state.geoAttempts || [];
+    const accuracy = attempts.flatMap((attempt) => extractAccuracyValues(attempt.attempt_data));
+    const average = accuracy.length ? Math.round(accuracy.reduce((sum, value) => sum + value, 0) / accuracy.length) : null;
+    geoCard = `<article class="stats-service panel"><div><strong>GeoTrainer</strong><span>${attempts.length} попыток · ${average === null ? "нет данных о точности" : `${average}% средняя точность`}</span></div><div class="stats-service-track"><i style="width:${average ?? 0}%"></i></div><small>${attempts[0] ? `Последняя попытка: ${escapeHTML(relativeDate(attempts[0].created_at))}` : "Попыток пока нет"}</small></article>`;
+  }
+  setMarkup(document.querySelector("#stats-breakdown"), `${geoCard}${breakdown}` || showEmpty("Сервисы появятся здесь", "Подключённые сервисы будут добавлены автоматически."));
+}
+
 function renderSignedOut() {
   document.querySelector("#logout-button").hidden = true;
   if (document.querySelector('[data-view="admin"]').classList.contains("is-active")) openRoute("overview");
+  document.querySelector("#auth-screen").hidden = false;
+  document.querySelector("#auth-form").querySelectorAll("input, button").forEach((input) => { input.disabled = !state.client; });
+  document.querySelector("#auth-form").querySelectorAll("input").forEach((input) => { input.required = input.name !== "display_name" && !input.closest("#legal-consents"); });
+  document.querySelector("#auth-form").reset();
+  state.authMode = "login";
+  renderAuthMode();
   document.querySelector("#signed-out-banner").hidden = false;
   document.querySelector("#overview-action").hidden = false;
   setAvatar(document.querySelector("#topbar-avatar"), "n");
@@ -187,6 +405,17 @@ function renderSignedOut() {
   document.querySelector("#signout-current").disabled = true;
   document.querySelector("#signout-button").disabled = true;
   document.querySelector("#overview-description").textContent = "Всё, что важно в экосистеме nmchv — в одном месте.";
+  document.querySelector("#overview-greeting").innerHTML = `Добрый день<span class="heading-period">.</span>`;
+  const weatherError = document.querySelector("#weather-error");
+  if (weatherError) weatherError.hidden = true;
+  document.querySelector("#weather-city").textContent = "Ростов-на-Дону";
+  document.querySelector("#weather-summary").textContent = "Погода появится после входа";
+  document.querySelector("#weather-temperature").textContent = "—°";
+  document.querySelector("#weather-updated").textContent = "Укажите город в профиле";
+  document.querySelector("#streak-count").textContent = "0 дней подряд";
+  setMarkup(document.querySelector("#streak-days"), "");
+  setMarkup(document.querySelector("#stats-breakdown"), "");
+  setMarkup(document.querySelector("#chart-services"), "");
   setMetric("metric-projects", "—", { id: "metric-projects-note", text: "Подключите аккаунт" });
   setMarkup(document.querySelector("#overview-projects"), showEmpty("Войдите в аккаунт", "Список проектов появится после авторизации."));
   setMarkup(document.querySelector("#projects-grid"), showEmpty("Проекты пока не подключены", "Войдите, чтобы увидеть сервисы, к которым у вас есть доступ.", '<button class="button button--secondary button--small" type="button" data-auth="login">Войти в аккаунт</button>'));
@@ -198,6 +427,10 @@ function renderSignedOut() {
   for (const id of ["metric-tasks", "metric-score", "metric-time", "stats-events", "stats-days", "stats-tests", "stats-tasks"]) setMetric(id, "—");
   setMarkup(document.querySelector("#activity-chart"), "");
   setMarkup(document.querySelector("#statistics-chart"), "");
+  state.weather = null;
+  state.tasks = [];
+  state.geoAttempts = [];
+  state.geoAttemptsError = null;
   const chartLegend = document.querySelector("#activity-chart").parentElement.nextElementSibling.querySelector("span:first-child");
   chartLegend.innerHTML = `<i></i> Нет данных об активности`;
 }
@@ -216,11 +449,13 @@ function renderProjectCards(projects, compact = false) {
     const description = escapeHTML(project.description || "Описание проекта не добавлено.");
     const slug = escapeHTML(project.slug || project.name || "?");
     const access = project.access_level ? `Доступ: ${escapeHTML(project.access_level)}` : "Публичный проект";
+    const lastActivity = state.activities?.find((item) => item.project_id === project.id);
     const statusClass = status === "restricted" ? " project-status--restricted" : status === "maintenance" ? " project-status--maintenance" : "";
     return `<article class="project-card${compact ? " project-card--compact" : ""}">
       <div class="project-card-top"><span class="project-symbol">${escapeHTML(String(project.icon || slug).slice(0, 1).toUpperCase())}</span><span class="project-status${statusClass}">${escapeHTML(statusName)}</span></div>
       <h3>${title}</h3><p>${description}</p>
       <div class="project-card-footer"><span class="project-access">${access}</span>${allowed ? `<a class="project-open" href="${escapeHTML(destination)}" target="_blank" rel="noopener noreferrer">Открыть <span aria-hidden="true">↗</span></a>` : '<span class="project-open is-disabled">Недоступен</span>'}</div>
+      <small class="project-last-activity">${lastActivity ? `Последняя активность: ${escapeHTML(relativeDate(lastActivity.created_at))}` : "Пока без активности"}</small>
     </article>`;
   }).join("");
 }
@@ -277,7 +512,10 @@ function renderOverview() {
   document.querySelector("#signed-out-banner").hidden = Boolean(state.user);
   document.querySelector("#overview-action").hidden = Boolean(state.user);
   if (!state.user) return renderSignedOut();
+  const authScreen = document.querySelector("#auth-screen");
+  if (authScreen) authScreen.hidden = true;
   const displayName = state.profile?.display_name || state.profile?.username || state.user.email?.split("@")[0] || "Пользователь";
+  document.querySelector("#overview-greeting").innerHTML = `${escapeHTML(getGreeting(state.profile?.timezone))}, ${escapeHTML(displayName)}<span class="heading-period">.</span>`;
   document.querySelector("#overview-description").textContent = `${displayName}, ваша активность в экосистеме nmchv.`;
   document.querySelector("#metric-projects-note").textContent = state.projectsError ? "Не удалось загрузить" : "С доступом к аккаунту";
   setMetric("metric-projects", state.projects ? String(state.projects.length) : "—");
@@ -302,20 +540,30 @@ function renderOverview() {
     renderActivity((state.activities || []).slice(0, 4), document.querySelector("#recent-activity"));
     renderActivity(state.activities || [], document.querySelector("#activity-list"));
     renderChart(document.querySelector("#activity-chart"), state.activities || []);
-    renderChart(document.querySelector("#statistics-chart"), state.activities || []);
+    renderStreak(state.activities || []);
     renderStatistics(state.activities || []);
+    renderInteractiveStatistics();
   }
   renderAchievements();
   renderGoals();
   renderNotifications();
+  loadWeather().catch((error) => {
+    const message = explainError(error, "Не удалось загрузить погоду");
+    const weatherError = document.querySelector("#weather-error");
+    if (weatherError) setError(weatherError, message);
+    document.querySelector("#weather-summary").textContent = "Погода временно недоступна";
+    console.error(message, error);
+  });
 }
 
 function renderStatistics(activities) {
-  const dates = new Set(activities.map((item) => new Date(item.created_at).toISOString().slice(0, 10)));
-  const tests = activities.filter((item) => item.event_type === "test_completed").length;
-  const tasks = activities.filter((item) => item.event_type === "lesson_completed").length;
+  const since = Date.now() - 30 * 86_400_000;
+  const recent = activities.filter((item) => new Date(item.created_at).getTime() >= since);
+  const dates = new Set(recent.map((item) => dateKey(item.created_at)));
+  const tests = recent.filter((item) => item.event_type === "test_completed").length;
+  const tasks = recent.filter((item) => item.event_type === "lesson_completed").length;
   const capped = activities.length === 500;
-  setMetric("stats-events", String(activities.length), { id: "stats-events-note", text: capped ? "Показаны последние 500 событий" : "За последние 30 дней" });
+  setMetric("stats-events", String(recent.length), { id: "stats-events-note", text: capped ? "Показаны последние 500 событий" : "За последние 30 дней" });
   setMetric("stats-days", String(dates.size));
   setMetric("stats-tests", String(tests));
   setMetric("stats-tasks", String(tasks));
@@ -339,7 +587,8 @@ function renderGoals() {
     const targetValue = Math.max(1, Number(goal.target_value) || 1);
     const percent = Math.min(100, Math.round((current / targetValue) * 100));
     const period = goal.period === "monthly" ? "В месяц" : "На неделю";
-    return `<article class="goal-card"><div class="goal-card-top"><span class="project-symbol">${icon(goal.metric === "minutes" ? "clock" : "goals")}</span><span class="goal-period">${period}</span></div><h3>${escapeHTML(goal.title)}</h3><p>${escapeHTML(goal.metric === "minutes" ? "Учебное время" : goal.metric === "tests" ? "Завершённые тесты" : "Выполненные задания")}</p><div class="goal-progress"><span style="width:${percent}%"></span></div><div class="goal-foot"><span>${current} из ${targetValue}</span><span>${percent}%</span></div></article>`;
+    const tasks = (state.tasks || []).filter((task) => task.goal_id === goal.id);
+    return `<article class="goal-card"><div class="goal-card-top"><span class="project-symbol">${icon(goal.metric === "minutes" ? "clock" : "goals")}</span><span class="goal-period">${period}</span></div><h3>${escapeHTML(goal.title)}</h3><p>${escapeHTML(goal.metric === "minutes" ? "Учебное время" : goal.metric === "tests" ? "Завершённые тесты" : "Выполненные задания")}</p><div class="goal-progress"><span style="width:${percent}%"></span></div><div class="goal-foot"><span>${current} из ${targetValue}</span><span>${percent}%</span></div><div class="goal-tasks">${tasks.map((task) => `<label class="goal-task${task.is_completed ? " is-complete" : ""}"><input type="checkbox" data-action="toggle-task" data-id="${escapeHTML(task.id)}" ${task.is_completed ? "checked" : ""}><span>${escapeHTML(task.title)}${task.due_at ? `<small>Срок: ${escapeHTML(formatDate(`${task.due_at}T12:00:00`, { day: "numeric", month: "short" }))}</small>` : ""}</span><button type="button" data-action="delete-task" data-id="${escapeHTML(task.id)}" aria-label="Удалить задачу">×</button></label>`).join("")}</div><button class="text-button goal-add-task" type="button" data-action="add-task" data-goal-id="${escapeHTML(goal.id)}">＋ Добавить задачу</button></article>`;
   }).join(""));
 }
 
@@ -382,6 +631,7 @@ function updateProfileUI() {
   profileError.hidden = !state.profileError;
   document.querySelectorAll("#profile-form input, #profile-form textarea, #profile-form select, #profile-form button").forEach((input) => { input.disabled = !state.user; });
   document.querySelector("#signout-current").disabled = !state.user;
+  const prefs = readProfilePrefs();
   const form = document.querySelector("#profile-form");
   for (const [name, value] of Object.entries({
     display_name: profile.display_name || "",
@@ -389,17 +639,66 @@ function updateProfileUI() {
     avatar_url: profile.avatar_url || "",
     bio: profile.bio || "",
     preferred_language: profile.preferred_language || "ru",
-    timezone: profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || ""
-  })) form.elements.namedItem(name).value = value;
+    timezone: profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+    weather_city: prefs.weather_city || profile.weather_city || "Ростов-на-Дону"
+  })) {
+    const field = form.elements.namedItem(name);
+    if (field) field.value = value;
+  }
+  const privacy = document.querySelector("#privacy-toggle");
+  if (privacy) privacy.checked = prefs.privacy !== false;
+  const avatarFile = form.elements.namedItem("avatar_file");
+  if (avatarFile) avatarFile.value = "";
   document.querySelector("#signout-button").disabled = !state.user;
   document.querySelector("#logout-button").hidden = !state.user;
+  syncThemeSelect();
 }
 
 function setConnectionStatus(kind, text) {
   const status = document.querySelector("#connection-status");
+  if (!status) return;
   status.classList.toggle("is-connected", kind === "connected");
   status.classList.toggle("is-error", kind === "error");
-  status.lastElementChild.textContent = text;
+  if (status.lastElementChild) status.lastElementChild.textContent = text;
+}
+
+const LEGAL_BUCKET = "legal";
+const LEGAL_DOCS = [
+  { key: "user-agreement", file: "user-agreement.pdf" },
+  { key: "privacy-policy", file: "privacy-policy.pdf" },
+  { key: "personal-data-consent", file: "personal-data-consent.pdf" }
+];
+
+function applyLegalDocLinks(map = {}) {
+  for (const doc of LEGAL_DOCS) {
+    const link = document.querySelector(`[data-legal-key="${doc.key}"]`);
+    if (!link) continue;
+    const url = map[doc.key];
+    if (url) {
+      link.href = url;
+      link.removeAttribute("aria-disabled");
+      link.title = "Открыть документ";
+    } else {
+      link.href = "#";
+      link.setAttribute("aria-disabled", "true");
+      link.title = "Документ будет доступен после публикации";
+    }
+  }
+}
+
+async function loadLegalDocs() {
+  const map = {};
+  if (state.client) {
+    for (const doc of LEGAL_DOCS) {
+      try {
+        const { data } = state.client.storage.from(LEGAL_BUCKET).getPublicUrl(doc.file);
+        map[doc.key] = data?.publicUrl || "";
+      } catch {
+        map[doc.key] = "";
+      }
+    }
+  }
+  applyLegalDocLinks(map);
 }
 
 function getClientConfig() {
@@ -457,25 +756,35 @@ async function loadUserData() {
     ["activities", state.client.from("user_activity").select("event_type,project_id,created_at").eq("user_id", state.user.id).gte("created_at", since).order("created_at", { ascending: false }).limit(500)],
     ["achievements", loadAchievements()],
     ["goals", state.client.from("user_goals").select("id,title,metric,target_value,current_value,period,created_at").eq("user_id", state.user.id).order("created_at", { ascending: false })],
-    ["notifications", state.client.from("notifications").select("id,type,title,body,is_read,created_at").eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(50)]
+    ["notifications", state.client.from("notifications").select("id,type,title,body,is_read,created_at").eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(50)],
+    ["geoAttempts", state.client.from("geotrainer_attempts").select("created_at,attempt_data").eq("user_id", state.user.id).order("created_at", { ascending: false }).limit(50)]
   ];
+  state.tasks = readTasks();
   const results = await Promise.allSettled(work.map(([, request]) => request));
   for (let index = 0; index < work.length; index += 1) {
     const [key] = work[index];
     const result = results[index];
     if (result.status === "rejected") {
-      state[`${key}Error`] = explainError(result.reason, `Не удалось загрузить ${key === "profile" ? "профиль" : key}`);
-      if (key === "profile") state.profile = null;
-      else state[key] = null;
+      if (key === "geoAttempts") { state.geoAttempts = []; state.geoAttemptsError = null; }
+      else {
+        state[`${key}Error`] = explainError(result.reason, `Не удалось загрузить ${key === "profile" ? "профиль" : key}`);
+        if (key === "profile") state.profile = null;
+        else state[key] = null;
+      }
       continue;
     }
     const value = result.value;
     if (value?.error) {
-      state[`${key}Error`] = explainError(value.error, `Не удалось загрузить ${key === "profile" ? "профиль" : key}`);
-      state[key === "activities" ? "activities" : key] = null;
+      if (key === "geoAttempts") { state.geoAttempts = []; state.geoAttemptsError = null; }
+      else {
+        state[`${key}Error`] = explainError(value.error, `Не удалось загрузить ${key === "profile" ? "профиль" : key}`);
+        state[key === "activities" ? "activities" : key] = null;
+      }
     } else {
       state[`${key}Error`] = null;
-      state[key] = key === "activities" ? value.data || [] : value.data;
+      if (key === "activities") state.activities = value.data || [];
+      else if (key === "geoAttempts") state.geoAttempts = value.data || [];
+      else state[key] = value.data;
     }
   }
   updateProfileUI();
@@ -537,7 +846,6 @@ function clearUserData() {
   state.pendingAdmin = false;
   state.profile = null;
   state.profileError = null;
-  state.profileError = null;
   state.projects = null;
   state.projectsError = null;
   state.activities = null;
@@ -548,6 +856,12 @@ function clearUserData() {
   state.goalsError = null;
   state.notifications = null;
   state.notificationsError = null;
+  state.geoAttempts = [];
+  state.geoAttemptsError = null;
+  state.tasks = [];
+  state.weather = null;
+  state.chartDays = 14;
+  state.chartProject = "all";
 }
 
 function renderAuthMode() {
@@ -557,6 +871,8 @@ function renderAuthMode() {
   const passwordInput = password.querySelector("input");
   const submit = document.querySelector("#auth-submit");
   const footer = document.querySelector("#auth-footer");
+  const nameField = document.querySelector("#display-name-field");
+  const legal = document.querySelector("#legal-consents");
   const modes = {
     login: ["С возвращением", "Войдите, чтобы продолжить.", "Войти", true, "current-password"],
     register: ["Создайте аккаунт", "Один аккаунт для проектов экосистемы nmchv.", "Зарегистрироваться", true, "new-password"],
@@ -570,18 +886,31 @@ function renderAuthMode() {
   passwordInput.autocomplete = autocomplete;
   submit.textContent = label;
   footer.hidden = state.authMode === "reset";
+  if (nameField) nameField.hidden = state.authMode !== "register";
+  if (legal) {
+    legal.hidden = state.authMode !== "register";
+    legal.querySelectorAll("input[type='checkbox']").forEach((input) => {
+      input.required = state.authMode === "register";
+      if (state.authMode !== "register") input.checked = false;
+    });
+  }
 }
 
 function openAuth(mode = "login") {
   state.authMode = mode;
   clearError(document.querySelector("#auth-error"));
   renderAuthMode();
+  const screen = document.querySelector("#auth-screen");
+  if (screen) screen.hidden = false;
   const configNote = document.querySelector("#auth-config-note");
   configNote.hidden = Boolean(state.client);
   configNote.textContent = state.configError || state.connectionError || "Авторизация пока не подключена. Укажите публичные параметры Supabase в scripts/config.js.";
+  const form = document.querySelector("#auth-form");
+  if (form) {
+    form.querySelectorAll("input, button, select").forEach((input) => { input.disabled = !state.client; });
+    form.querySelectorAll("#legal-consents input").forEach((input) => { if (mode !== "register") input.checked = false; });
+  }
   document.querySelector("#auth-submit").disabled = !state.client;
-  const dialog = document.querySelector("#auth-dialog");
-  if (!dialog.open) dialog.showModal();
 }
 
 function openRoute(route) {
@@ -619,6 +948,57 @@ function getAuthRedirectUrl() {
   return url.href;
 }
 
+function profilePrefsKey() {
+  return state.user ? `nmchv-account:prefs:${state.user.id}` : "";
+}
+
+function readProfilePrefs() {
+  const key = profilePrefsKey();
+  if (!key) return {};
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "{}");
+    return value && typeof value === "object" ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeProfilePrefs(prefs) {
+  const key = profilePrefsKey();
+  if (!key) return;
+  try { localStorage.setItem(key, JSON.stringify(prefs)); } catch {}
+}
+
+function tasksKey() {
+  return state.user ? `nmchv-account:tasks:${state.user.id}` : "";
+}
+
+function readTasks() {
+  const key = tasksKey();
+  if (!key) return [];
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeTasks(tasks) {
+  const key = tasksKey();
+  if (!key) return;
+  try { localStorage.setItem(key, JSON.stringify(tasks)); } catch {}
+}
+
+function syncThemeSelect() {
+  const select = document.querySelector("#theme-select");
+  if (!select) return;
+  let value = "system";
+  try { value = localStorage.getItem("nmchv-theme") || "system"; } catch {}
+  if (value !== "light" && value !== "dark") value = "system";
+  select.value = value;
+}
+
 function openGoalDialog() {
   clearError(document.querySelector("#goal-error"));
   const dialog = document.querySelector("#goal-dialog");
@@ -637,19 +1017,22 @@ async function submitAuth(event) {
   button.disabled = true;
   try {
     if (state.authMode === "register") {
-      const { error: signupError } = await state.client.auth.signUp({ email, password, options: { emailRedirectTo: getAuthRedirectUrl() } });
+      const displayName = (form.elements.namedItem("display_name")?.value || "").trim();
+      const options = { emailRedirectTo: getAuthRedirectUrl() };
+      if (displayName) options.data = { display_name: displayName };
+      const { error: signupError } = await state.client.auth.signUp({ email, password, options });
       if (signupError) throw signupError;
-      document.querySelector("#auth-dialog").close();
+      const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;
       showToast("Проверьте почту, чтобы подтвердить адрес.");
     } else if (state.authMode === "reset") {
       const { error: resetError } = await state.client.auth.resetPasswordForEmail(email, { redirectTo: getAuthRedirectUrl() });
       if (resetError) throw resetError;
-      document.querySelector("#auth-dialog").close();
+      const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;
       showToast("Если адрес зарегистрирован, письмо для восстановления уже отправлено.");
     } else {
       const { error: loginError } = await state.client.auth.signInWithPassword({ email, password });
       if (loginError) throw loginError;
-      document.querySelector("#auth-dialog").close();
+      const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;
       showToast("Вы вошли в аккаунт.");
     }
   } catch (authError) {
@@ -664,21 +1047,26 @@ async function saveProfile(event) {
   try {
     requireClient();
     const form = event.currentTarget;
-    const avatarValue = form.elements.namedItem("avatar_url").value.trim();
+    const avatarValue = (form.elements.namedItem("avatar_url")?.value || "").trim();
     const avatarUrl = safeAvatarUrl(avatarValue);
     if (avatarValue && !avatarUrl) throw new Error("Ссылка на аватар должна быть корректным HTTPS-адресом.");
     const profile = {
       id: state.user.id,
-      display_name: form.elements.namedItem("display_name").value.trim(),
-      username: form.elements.namedItem("username").value.trim() || null,
+      display_name: (form.elements.namedItem("display_name")?.value || "").trim(),
+      username: (form.elements.namedItem("username")?.value || "").trim() || null,
       avatar_url: avatarUrl,
-      bio: form.elements.namedItem("bio").value.trim(),
-      preferred_language: form.elements.namedItem("preferred_language").value,
-      timezone: form.elements.namedItem("timezone").value.trim()
+      bio: (form.elements.namedItem("bio")?.value || "").trim(),
+      preferred_language: form.elements.namedItem("preferred_language")?.value || "ru",
+      timezone: (form.elements.namedItem("timezone")?.value || "").trim()
     };
     const { data, error } = await state.client.from("profiles").upsert(profile, { onConflict: "id" }).select("username,display_name,avatar_url,bio,preferred_language,timezone").single();
     if (error) throw error;
     state.profile = data;
+    writeProfilePrefs({
+      weather_city: (form.elements.namedItem("weather_city")?.value || "").trim() || "Ростов-на-Дону",
+      privacy: document.querySelector("#privacy-toggle")?.checked !== false
+    });
+    state.weather = null;
     updateProfileUI();
     renderOverview();
     showToast("Профиль сохранён.");
@@ -755,8 +1143,31 @@ async function changePassword() {
   }
 }
 
+function openTaskDialog(goalId = "") {
+  const dialog = document.querySelector("#task-dialog");
+  const form = document.querySelector("#task-form");
+  if (!dialog || !form) return;
+  clearError(document.querySelector("#task-error"));
+  form.reset();
+  const goalField = form.elements.namedItem("goal_id");
+  if (goalField) goalField.value = goalId;
+  if (!dialog.open) dialog.showModal();
+}
+
+function saveTasks(tasks) {
+  state.tasks = tasks;
+  writeTasks(tasks);
+  renderGoals();
+}
+
 function bindEvents() {
   document.addEventListener("click", (event) => {
+    const legal = event.target.closest("[data-legal-key]");
+    if (legal && (!legal.getAttribute("href") || legal.getAttribute("href") === "#")) {
+      event.preventDefault();
+      showToast("Документ пока не опубликован. Его можно загрузить в админке.", "error");
+      return;
+    }
     const authButton = event.target.closest("[data-auth]");
     if (authButton) {
       event.preventDefault();
@@ -768,41 +1179,139 @@ function bindEvents() {
     if (routeButton) return openRoute(routeButton.dataset.navigate);
     const action = event.target.closest("[data-action]");
     if (action?.dataset.action === "add-goal") {
+      event.preventDefault();
       if (!state.user) return openAuth("login");
-      openGoalDialog();
+      return openGoalDialog();
     }
-    if (action?.dataset.action === "read-notification") markNotificationRead(action.dataset.id);
+    if (action?.dataset.action === "add-task") {
+      event.preventDefault();
+      if (!state.user) return openAuth("login");
+      return openTaskDialog(action.dataset.goalId || "");
+    }
+    if (action?.dataset.action === "delete-task") {
+      event.preventDefault();
+      saveTasks((state.tasks || []).filter((task) => task.id !== action.dataset.id));
+      return;
+    }
+    if (action?.dataset.action === "read-notification") {
+      event.preventDefault();
+      return markNotificationRead(action.dataset.id);
+    }
+    const chartDays = event.target.closest("[data-chart-days]");
+    if (chartDays) {
+      state.chartDays = Number(chartDays.dataset.chartDays) || 14;
+      renderInteractiveStatistics();
+      return;
+    }
+    const projectFilter = event.target.closest("[data-project]");
+    if (projectFilter) {
+      state.chartProject = projectFilter.dataset.project || "all";
+      renderInteractiveStatistics();
+      return;
+    }
+    const point = event.target.closest(".chart-point");
+    if (point) {
+      const insight = document.querySelector("#chart-insight");
+      if (insight) insight.textContent = point.getAttribute("aria-label") || "День выбран";
+      return;
+    }
     const nav = event.target.closest("[data-route]");
     if (nav) {
       event.preventDefault();
       openRoute(nav.dataset.route);
+      return;
+    }
+    if (event.target.closest("#back-to-top")) {
+      event.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (event.target.closest("#weather-more")) {
+      const dialog = document.querySelector("#weather-dialog");
+      if (dialog && !dialog.open) dialog.showModal();
+      return;
+    }
+    if (event.target.closest("#feedback-button")) {
+      showToast("Канал обратной связи появится позже.");
+      return;
     }
   });
-  document.querySelector("#auth-form").addEventListener("submit", submitAuth);
-  document.querySelector("#profile-form").addEventListener("submit", saveProfile);
-  document.querySelector("#goal-form").addEventListener("submit", createGoal);
-  document.querySelector("#logout-button").addEventListener("click", () => signOut("local"));
-  document.querySelector("#admin-button").addEventListener("click", openAdmin);
-  document.querySelector("#signout-current").addEventListener("click", () => signOut("local"));
-  document.querySelector("#signout-button").addEventListener("click", () => signOut("global"));
-  document.querySelector("#add-goal-button").addEventListener("click", () => state.user ? openGoalDialog() : openAuth("login"));
-  document.querySelector("#auth-dialog").addEventListener("click", (event) => {
-    if (event.target === event.currentTarget) event.currentTarget.close();
+
+  document.addEventListener("change", (event) => {
+    const toggle = event.target.closest("[data-action='toggle-task']");
+    if (toggle) {
+      saveTasks((state.tasks || []).map((task) => task.id === toggle.dataset.id ? { ...task, is_completed: toggle.checked } : task));
+      return;
+    }
+    if (event.target.id === "theme-select") {
+      const value = event.target.value;
+      if (value === "system") {
+        try { localStorage.removeItem("nmchv-theme"); } catch {}
+        const prefersLight = window.matchMedia?.("(prefers-color-scheme: light)").matches;
+        if (window.NmchvTheme?.set) window.NmchvTheme.set(prefersLight ? "light" : "dark");
+        try { localStorage.removeItem("nmchv-theme"); } catch {}
+      } else if (window.NmchvTheme?.set) {
+        window.NmchvTheme.set(value);
+      } else {
+        try { localStorage.setItem("nmchv-theme", value); } catch {}
+      }
+      syncThemeSelect();
+    }
   });
-  document.querySelector("#goal-dialog").addEventListener("click", (event) => {
-    if (event.target === event.currentTarget) event.currentTarget.close();
+
+  document.querySelector("#auth-form")?.addEventListener("submit", submitAuth);
+  document.querySelector("#profile-form")?.addEventListener("submit", saveProfile);
+  document.querySelector("#goal-form")?.addEventListener("submit", createGoal);
+  document.querySelector("#task-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const errorTarget = document.querySelector("#task-error");
+    clearError(errorTarget);
+    try {
+      requireClient();
+      const form = event.currentTarget;
+      const title = (form.elements.namedItem("title")?.value || "").trim();
+      const goalId = form.elements.namedItem("goal_id")?.value || "";
+      const dueAt = form.elements.namedItem("due_at")?.value || "";
+      if (!title) throw new Error("Укажите название задачи.");
+      const task = {
+        id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        goal_id: goalId,
+        title,
+        due_at: dueAt || null,
+        is_completed: false,
+        created_at: new Date().toISOString()
+      };
+      saveTasks([task, ...(state.tasks || [])]);
+      document.querySelector("#task-dialog")?.close();
+      form.reset();
+      showToast("Задача добавлена.");
+    } catch (error) {
+      setError(errorTarget, explainError(error, "Не удалось добавить задачу"));
+    }
   });
-  document.querySelector("#auth-footer").addEventListener("click", (event) => {
+  document.querySelector("#logout-button")?.addEventListener("click", () => signOut("local"));
+  document.querySelector("#admin-button")?.addEventListener("click", openAdmin);
+  document.querySelector("#signout-current")?.addEventListener("click", () => signOut("local"));
+  document.querySelector("#signout-button")?.addEventListener("click", () => signOut("global"));
+  document.querySelector("#add-goal-button")?.addEventListener("click", () => state.user ? openGoalDialog() : openAuth("login"));
+  ["goal-dialog", "task-dialog", "weather-dialog"].forEach((id) => {
+    document.querySelector(`#${id}`)?.addEventListener("click", (event) => {
+      if (event.target === event.currentTarget) event.currentTarget.close();
+    });
+  });
+  document.querySelector("#auth-footer")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-auth]");
     if (button) openAuth(button.dataset.auth);
   });
   window.addEventListener("hashchange", () => openRoute(location.hash.slice(1)));
+  window.addEventListener("nmchv:legal-docs-updated", () => { loadLegalDocs().catch(() => {}); });
 }
 
 const admin = createAdmin({ state, escapeHTML, setMarkup, setMetric, setError, clearError, showToast, explainError, formatDate, eventNames });
 
 async function initialize() {
   renderStaticIcons();
+  applyLegalDocLinks();
   bindEvents();
   openRoute(location.hash.slice(1) || "overview");
   const config = getClientConfig();
@@ -828,6 +1337,7 @@ async function initialize() {
     setConnectionStatus("connected", "Supabase подключён");
     document.querySelector("#auth-submit").disabled = false;
     document.querySelector("#auth-config-note").hidden = true;
+    await loadLegalDocs();
     const { data: { session }, error } = await state.client.auth.getSession();
     if (error) throw error;
     state.user = session?.user || null;

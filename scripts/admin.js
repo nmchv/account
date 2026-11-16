@@ -7,11 +7,17 @@ const STATUS_LABELS = { available: "Доступен", restricted: "Ограни
 const VISIBILITY_LABELS = { public: "Публичный", private: "Приватный" };
 const SHORT_DATE = { day: "numeric", month: "short", year: "numeric" };
 const FULL_DATE = { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" };
+const LEGAL_BUCKET = "legal";
+const LEGAL_DOCS = [
+  { key: "user-agreement", name: "Пользовательское соглашение", file: "user-agreement.pdf" },
+  { key: "privacy-policy", name: "Политика конфиденциальности", file: "privacy-policy.pdf" },
+  { key: "personal-data-consent", name: "Согласие на обработку персональных данных", file: "personal-data-consent.pdf" }
+];
 
 export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setError, clearError, showToast, explainError, formatDate, eventNames }) {
   const root = document.querySelector('[data-view="admin"]');
   const $ = (selector) => root.querySelector(selector);
-  const view = { users: [], projects: [], selected: null, tab: "users", search: "" };
+  const view = { users: [], projects: [], selected: null, tab: "users", search: "", legal: {} };
 
   const must = (result) => {
     if (result.error) throw result.error;
@@ -30,6 +36,68 @@ export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setE
   }
 
   // ---------- загрузка и список ----------
+  function legalPublicUrl(file) {
+    const { data } = client().storage.from(LEGAL_BUCKET).getPublicUrl(file);
+    return data?.publicUrl || "";
+  }
+
+  async function loadLegalDocs() {
+    view.legal = {};
+    try {
+      const { data, error } = await client().storage.from(LEGAL_BUCKET).list("", { limit: 100, sortBy: { column: "name", order: "asc" } });
+      if (error) throw error;
+      const byName = new Map((data || []).map((item) => [item.name, item]));
+      for (const doc of LEGAL_DOCS) {
+        const item = byName.get(doc.file);
+        view.legal[doc.key] = item ? { ...item, url: legalPublicUrl(doc.file) } : null;
+      }
+    } catch {
+      for (const doc of LEGAL_DOCS) view.legal[doc.key] = { error: true, url: legalPublicUrl(doc.file) };
+    }
+    renderLegalDocs();
+  }
+
+  function renderLegalDocs() {
+    const container = $("#admin-legal-list");
+    if (!container) return;
+    setMarkup(container, LEGAL_DOCS.map((doc) => {
+      const item = view.legal[doc.key];
+      const hasFile = item && !item.error && item.name;
+      const url = item?.url || "";
+      return `<div class="admin-legal-item" data-legal-key="${esc(doc.key)}">
+        <div class="admin-legal-copy">
+          <strong>${esc(doc.name)}</strong>
+          <span class="muted">${esc(doc.file)}${hasFile && item.updated_at ? ` · обновлён ${esc(formatDate(item.updated_at, SHORT_DATE))}` : ""}${item?.error ? " · не удалось проверить файл в storage" : ""}</span>
+          ${hasFile || url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Открыть текущий файл ↗</a>` : '<span class="muted">Файл ещё не загружен</span>'}
+        </div>
+        <div class="admin-legal-actions">
+          <input id="legal-file-${esc(doc.key)}" type="file" accept="application/pdf,.pdf" class="admin-file-input">
+          <button class="button button--primary button--small" type="button" data-admin-action="upload-legal" data-key="${esc(doc.key)}" data-file="${esc(doc.file)}">Загрузить</button>
+        </div>
+      </div>`;
+    }).join(""));
+  }
+
+  async function uploadLegalDoc(element) {
+    const key = element.dataset.key;
+    const fileName = element.dataset.file;
+    const input = root.querySelector(`#legal-file-${key}`);
+    const file = input?.files?.[0];
+    if (!file) throw new Error("Выберите PDF-файл для загрузки.");
+    if (file.type && file.type !== "application/pdf" && !file.name.toLowerCase().endswith(".pdf")) {
+      throw new Error("Нужен файл в формате PDF.");
+    }
+    const { error } = await client().storage.from(LEGAL_BUCKET).upload(fileName, file, {
+      upsert: true,
+      contentType: "application/pdf",
+      cacheControl: "3600"
+    });
+    if (error) throw error;
+    if (input) input.value = "";
+    await loadLegalDocs();
+    window.dispatchEvent(new CustomEvent("nmchv:legal-docs-updated"));
+  }
+
   async function load() {
     if (!state.isAdmin) return;
     clearError($("#admin-error"));
@@ -43,6 +111,7 @@ export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setE
       renderMetrics();
       renderUsers();
       renderProjects();
+      await loadLegalDocs();
       if (view.selected) await openUser(view.selected, true);
     } catch (error) {
       setError($("#admin-error"), explainError(error, "Не удалось загрузить данные админки. Применены ли миграции 20261115120000 и 20261115130000?"));
@@ -94,6 +163,8 @@ export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setE
     root.querySelectorAll(".admin-tab").forEach((button) => button.classList.toggle("is-active", button.dataset.tab === tab));
     $("#admin-users-panel").hidden = tab !== "users";
     $("#admin-projects-panel").hidden = tab !== "projects";
+    const legalPanel = $("#admin-legal-panel");
+    if (legalPanel) legalPanel.hidden = tab !== "legal";
   }
 
   // ---------- карточка пользователя ----------
@@ -294,7 +365,8 @@ export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setE
       "grant-achievement": () => run(grantAchievement, "Достижение выдано."),
       "revoke-achievement": () => (window.confirm("Забрать достижение у пользователя?") ? run(() => revokeAchievement(element.dataset.id), "Достижение отозвано.") : Promise.resolve()),
       "send-notification": () => run(sendNotification, "Уведомление отправлено."),
-      "save-project": () => run(() => saveProject(row), "Сервис обновлён.")
+      "save-project": () => run(() => saveProject(row), "Сервис обновлён."),
+      "upload-legal": () => run(() => uploadLegalDoc(element), "Документ загружен.")
     };
     (tasks[action]?.() || Promise.resolve()).finally(done);
   });
