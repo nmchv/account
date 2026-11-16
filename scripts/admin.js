@@ -233,16 +233,12 @@ export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setE
     const accessRows = view.projects.map((project) => {
       const row = accessByProject.get(project.id);
       const status = accessState(row);
-      return `<div class="admin-access-row" data-project-id="${esc(project.id)}">
+      const checked = status.key === "active" ? " checked" : "";
+      return `<label class="admin-access-row admin-access-row--check" data-project-id="${esc(project.id)}">
+        <input class="admin-access-check" type="checkbox" data-admin-action="toggle-access"${checked}>
         <div class="admin-access-name"><strong>${esc(project.name)}</strong><span class="muted">${esc(STATUS_LABELS[project.status] || project.status)} · ${esc(VISIBILITY_LABELS[project.visibility] || project.visibility)}</span></div>
         <span class="admin-badge admin-badge--${status.key}">${status.label}</span>
-        <label class="admin-mini"><span>Уровень</span><input name="level" maxlength="40" value="${esc(row?.access_level || DEFAULT_LEVEL)}"></label>
-        <label class="admin-mini"><span>До (необязательно)</span><input name="expires" type="date" value="${esc(day(row?.expires_at))}"></label>
-        <div class="admin-row-actions">
-          <button class="button button--primary button--small" type="button" data-admin-action="grant-access">${status.key === "active" ? "Сохранить" : "Выдать"}</button>
-          ${status.key === "active" ? '<button class="button button--secondary button--small" type="button" data-admin-action="revoke-access">Отозвать</button>' : ""}
-        </div>
-      </div>`;
+      </label>`;
     }).join("") || '<p class="muted">Сервисов нет.</p>';
 
     const earnedIds = new Set(data.earned.map((item) => item.achievement_id));
@@ -280,7 +276,7 @@ export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setE
         ${metric("Выполнено заданий", String(tasks), "За 30 дней")}
       </div>
       <section class="panel page-panel admin-section"><div class="panel-heading"><div><h2>Ритм активности</h2><p>События по дням за последние две недели</p></div></div>${chart(data.activity)}</section>
-      <section class="panel page-panel admin-section"><div class="panel-heading"><div><h2>Доступы к сервисам</h2><p>Для сервисов со статусом «Ограничен» доступ нужен, для публичных — по желанию</p></div></div><div class="admin-access">${accessRows}</div></section>
+      <section class="panel page-panel admin-section"><div class="panel-heading"><div><h2>Доступы к сервисам</h2><p>Отметьте сервисы, к которым у пользователя есть доступ</p></div></div><div class="admin-access admin-access--checks">${accessRows}</div></section>
       <div class="admin-two">
         <section class="panel page-panel admin-section"><div class="panel-heading"><div><h2>Достижения</h2><p>Выдать или забрать вручную</p></div></div>
           <ul class="admin-list">${earnedRows || '<li class="muted">Пока нет.</li>'}</ul>
@@ -301,18 +297,14 @@ export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setE
   // ---------- действия ----------
   const refreshUser = () => openUser(view.selected, true);
 
-  async function grantAccess(row) {
-    const level = row.querySelector('[name="level"]').value.trim() || DEFAULT_LEVEL;
-    const expires = row.querySelector('[name="expires"]').value;
-    const expiresAt = expires ? new Date(`${expires}T23:59:59`).toISOString() : null;
-    must(await client().from("user_project_access").upsert({
-      user_id: view.selected, project_id: row.dataset.projectId, access_level: level, is_active: true, expires_at: expiresAt
-    }, { onConflict: "user_id,project_id" }));
-    await refreshUser();
-  }
-
-  async function revokeAccess(row) {
-    must(await client().from("user_project_access").update({ is_active: false }).eq("user_id", view.selected).eq("project_id", row.dataset.projectId));
+  async function setAccess(row, enabled) {
+    if (enabled) {
+      must(await client().from("user_project_access").upsert({
+        user_id: view.selected, project_id: row.dataset.projectId, access_level: DEFAULT_LEVEL, is_active: true, expires_at: null
+      }, { onConflict: "user_id,project_id" }));
+    } else {
+      must(await client().from("user_project_access").update({ is_active: false }).eq("user_id", view.selected).eq("project_id", row.dataset.projectId));
+    }
     await refreshUser();
   }
 
@@ -360,8 +352,6 @@ export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setE
     const done = busy();
     const row = element.closest("[data-project-id], tr[data-id]");
     const tasks = {
-      "grant-access": () => run(() => grantAccess(row), "Доступ сохранён."),
-      "revoke-access": () => run(() => revokeAccess(row), "Доступ отозван."),
       "grant-achievement": () => run(grantAchievement, "Достижение выдано."),
       "revoke-achievement": () => (window.confirm("Забрать достижение у пользователя?") ? run(() => revokeAchievement(element.dataset.id), "Достижение отозвано.") : Promise.resolve()),
       "send-notification": () => run(sendNotification, "Уведомление отправлено."),
@@ -369,6 +359,15 @@ export function createAdmin({ state, escapeHTML: esc, setMarkup, setMetric, setE
       "upload-legal": () => run(() => uploadLegalDoc(element), "Документ загружен.")
     };
     (tasks[action]?.() || Promise.resolve()).finally(done);
+  });
+
+  root.addEventListener("change", (event) => {
+    const element = event.target.closest('[data-admin-action="toggle-access"]');
+    if (!element || !state.isAdmin) return;
+    const row = element.closest("[data-project-id]");
+    if (!row) return;
+    element.disabled = true;
+    run(() => setAccess(row, element.checked), element.checked ? "Доступ выдан." : "Доступ отозван.").finally(() => { element.disabled = false; });
   });
 
   $("#admin-search").addEventListener("input", (event) => {

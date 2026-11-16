@@ -27,7 +27,7 @@ const icons = {
 };
 
 const pageNames = {
-  overview: "Обзор", projects: "Проекты", activity: "Активность", statistics: "Статистика",
+  overview: "Обзор", projects: "Сервисы", activity: "Активность", statistics: "Статистика",
   achievements: "Достижения", goals: "Цели", notifications: "Уведомления", profile: "Профиль",
   settings: "Настройки", security: "Безопасность", admin: "Админка"
 };
@@ -226,8 +226,10 @@ async function loadWeather() {
   forecastUrl.search = new URLSearchParams({
     latitude: String(place.latitude),
     longitude: String(place.longitude),
-    current: "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m",
-    daily: "sunrise,sunset",
+    current: "temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,cloud_cover,pressure_msl,uv_index",
+    daily: "temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,uv_index_max",
+    hourly: "temperature_2m,precipitation_probability,weather_code",
+    forecast_hours: "24",
     timezone: "auto"
   });
   const forecastResponse = await fetch(forecastUrl);
@@ -239,29 +241,57 @@ async function loadWeather() {
   state.weather = {
     ...current,
     city: place.name,
+    admin1: place.admin1 || "",
     sunrise: forecast.daily?.sunrise?.[0],
-    sunset: forecast.daily?.sunset?.[0]
+    sunset: forecast.daily?.sunset?.[0],
+    tMax: forecast.daily?.temperature_2m_max?.[0],
+    tMin: forecast.daily?.temperature_2m_min?.[0],
+    uvMax: forecast.daily?.uv_index_max?.[0],
+    precipProb: forecast.daily?.precipitation_probability_max?.[0],
+    hourly: (forecast.hourly?.time || []).slice(0, 12).map((time, i) => ({
+      time,
+      temp: forecast.hourly.temperature_2m?.[i],
+      prob: forecast.hourly.precipitation_probability?.[i],
+      code: forecast.hourly.weather_code?.[i]
+    }))
   };
   const description = weatherDescriptions[current.weather_code] || "Переменная погода";
+  const rainy = current.precipitation > 0 || current.weather_code >= 51;
+  const cloudy = (current.cloud_cover ?? 0) > 40 || (current.weather_code >= 2 && current.weather_code < 51);
   document.querySelector("#weather-city").textContent = `${place.name}${place.admin1 ? `, ${place.admin1}` : ""}`;
   document.querySelector("#weather-summary").textContent = description;
   document.querySelector("#weather-temperature").textContent = `${Math.round(current.temperature_2m)}°`;
   document.querySelector("#weather-updated").textContent = `Ощущается как ${Math.round(current.apparent_temperature)}°`;
-  document.querySelector("#weather-scene").classList.toggle("is-rainy", current.precipitation > 0 || current.weather_code >= 51);
-  document.querySelector("#weather-scene").classList.toggle("is-night", !current.is_day);
+  const card = document.querySelector("#weather-card");
+  if (card) {
+    card.classList.toggle("is-rainy", rainy);
+    card.classList.toggle("is-night", !current.is_day);
+    card.classList.toggle("is-cloudy", cloudy);
+    card.classList.toggle("is-clear", !rainy && !cloudy);
+  }
   document.querySelector("#weather-dialog-title").textContent = place.name;
   document.querySelector("#weather-detail-temperature").textContent = `${Math.round(current.temperature_2m)}°`;
   document.querySelector("#weather-detail-summary").textContent = description;
-  document.querySelector("#weather-detail-icon").textContent = current.weather_code >= 51 ? "☂" : current.is_day ? "☀" : "☾";
+  document.querySelector("#weather-detail-icon").textContent = rainy ? "☂" : current.is_day ? "☀" : "☾";
   const details = [
     ["Ощущается как", `${Math.round(current.apparent_temperature)}°`],
     ["Влажность", `${Math.round(current.relative_humidity_2m)}%`],
     ["Ветер", `${Math.round(current.wind_speed_10m)} км/ч`],
     ["Осадки", `${Number(current.precipitation).toLocaleString("ru-RU")} мм`],
-    ["Восход", forecast.daily?.sunrise?.[0] ? formatDate(forecast.daily.sunrise[0], { hour: "2-digit", minute: "2-digit" }) : "—"],
-    ["Закат", forecast.daily?.sunset?.[0] ? formatDate(forecast.daily.sunset[0], { hour: "2-digit", minute: "2-digit" }) : "—"]
+    ["Облачность", `${Math.round(current.cloud_cover ?? 0)}%`],
+    ["Давление", current.pressure_msl ? `${Math.round(current.pressure_msl)} гПа` : "—"],
+    ["УФ-индекс", current.uv_index != null ? String(Math.round(current.uv_index)) : "—"],
+    ["Вероятность осадков", state.weather.precipProb != null ? `${Math.round(state.weather.precipProb)}%` : "—"],
+    ["Макс. / мин.", state.weather.tMax != null ? `${Math.round(state.weather.tMax)}° / ${Math.round(state.weather.tMin)}°` : "—"],
+    ["Восход", state.weather.sunrise ? formatDate(state.weather.sunrise, { hour: "2-digit", minute: "2-digit" }) : "—"],
+    ["Закат", state.weather.sunset ? formatDate(state.weather.sunset, { hour: "2-digit", minute: "2-digit" }) : "—"]
   ];
-  setMarkup(document.querySelector("#weather-details"), details.map(([label, value]) => `<div><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>`).join(""));
+  const detailCards = details.map(([label, value]) => `<div><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>`).join("");
+  const hourly = (state.weather.hourly || []).filter((h) => h.time);
+  const hourlyBlock = hourly.length ? `<div class="weather-hourly"><h3>Почасовой прогноз</h3><div class="weather-hourly-track">${hourly.map((h) => `<div class="weather-hourly-item"><span>${escapeHTML(formatDate(h.time, { hour: "2-digit", minute: "2-digit" }))}</span><strong>${h.temp != null ? Math.round(h.temp) + "°" : "—"}</strong><small>${h.prob != null ? Math.round(h.prob) + "%" : ""}</small></div>`).join("")}</div></div>` : "";
+  setMarkup(document.querySelector("#weather-details"), `${detailCards}${hourlyBlock}`);
+  const visual = document.querySelector("#weather-dialog-visual");
+  if (visual) visual.className = `weather-dialog-visual ${!current.is_day ? "is-night" : rainy ? "is-rainy" : cloudy ? "is-cloudy" : "is-clear"}`;
   const weatherError = document.querySelector("#weather-error");
   if (weatherError) weatherError.hidden = true;
 }
@@ -381,6 +411,62 @@ function renderInteractiveStatistics() {
   setMarkup(document.querySelector("#stats-breakdown"), `${geoCard}${breakdown}` || showEmpty("Сервисы появятся здесь", "Подключённые сервисы будут добавлены автоматически."));
 }
 
+
+function extractLearningSeconds(value, depth = 0) {
+  if (!value || depth > 5) return 0;
+  if (Array.isArray(value)) return value.reduce((sum, item) => sum + extractLearningSeconds(item, depth + 1), 0);
+  if (typeof value !== "object") return 0;
+  const entries = Object.entries(value);
+  const lower = new Map(entries.map(([k, v]) => [String(k).toLowerCase(), v]));
+  let best = 0;
+  const toSeconds = (raw, unit) => {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    if (unit === "ms") return n / 1000;
+    if (unit === "min") return n * 60;
+    if (unit === "hour") return n * 3600;
+    return n > 1e7 ? n / 1000 : n > 1e4 ? n / 1000 : n > 7200 && String(raw).length > 6 ? n / 1000 : n;
+  };
+  const rules = [
+    [/millisecond|_ms$|ms$/, "ms"],
+    [/(minute|min)/, "min"],
+    [/(hour|hr)/, "hour"],
+    [/(second|sec|duration|time_spent|elapsed|spent|active_time|session_time|training_time|study_time)/, "sec"]
+  ];
+  for (const [key, val] of lower.entries()) {
+    if (val && typeof val === "object") continue;
+    for (const [re, unit] of rules) {
+      if (re.test(key)) { best = Math.max(best, toSeconds(val, unit)); break; }
+    }
+  }
+  for (const [, val] of entries) best = Math.max(best, extractLearningSeconds(val, depth + 1));
+  return best;
+}
+
+function formatLearningTime(totalSeconds) {
+  const sec = Math.max(0, Math.floor(totalSeconds));
+  if (!sec) return null;
+  const hours = Math.floor(sec / 3600);
+  const minutes = Math.floor((sec % 3600) / 60);
+  if (hours >= 100) return `${hours} ч`;
+  if (hours > 0) return `${hours} ч ${minutes} мин`;
+  if (minutes > 0) return `${minutes} мин`;
+  return `${sec} с`;
+}
+
+function renderLearningTime() {
+  const target = document.querySelector("#metric-time");
+  if (!target) return;
+  let total = 0;
+  for (const attempt of (state.geoAttempts || [])) total += extractLearningSeconds(attempt.attempt_data || attempt);
+  const formatted = formatLearningTime(total);
+  if (formatted) {
+    setMetric("metric-time", formatted, { id: "metric-time-note", text: "Общее время активных занятий во всех сервисах" });
+  } else {
+    setMetric("metric-time", "—", { id: "metric-time-note", text: "Нет данных о длительности занятий" });
+  }
+}
+
 function renderSignedOut() {
   document.querySelector("#logout-button").hidden = true;
   if (document.querySelector('[data-view="admin"]').classList.contains("is-active")) openRoute("overview");
@@ -420,15 +506,15 @@ function renderSignedOut() {
   setMarkup(document.querySelector("#streak-days"), "");
   setMarkup(document.querySelector("#stats-breakdown"), "");
   setMarkup(document.querySelector("#chart-services"), "");
-  setMetric("metric-projects", "—", { id: "metric-projects-note", text: "Подключите аккаунт" });
-  setMarkup(document.querySelector("#overview-projects"), showEmpty("Войдите в аккаунт", "Список проектов появится после авторизации."));
-  setMarkup(document.querySelector("#projects-grid"), showEmpty("Проекты пока не подключены", "Войдите, чтобы увидеть сервисы, к которым у вас есть доступ.", '<button class="button button--secondary button--small" type="button" data-auth="login">Войти в аккаунт</button>'));
+  setMarkup(document.querySelector("#overview-projects"), showEmpty("Войдите в аккаунт", "Список сервисов появится после авторизации."));
+  setMarkup(document.querySelector("#projects-grid"), showEmpty("Сервисы пока не подключены", "Войдите, чтобы увидеть сервисы, к которым у вас есть доступ.", '<button class="button button--secondary button--small" type="button" data-auth="login">Войти в аккаунт</button>'));
   setMarkup(document.querySelector("#recent-activity"), showEmpty("Пока тихо", "Ваши события появятся здесь после входа."));
   setMarkup(document.querySelector("#activity-list"), showEmpty("Нет событий", "Войдите, чтобы посмотреть историю активности."));
   setMarkup(document.querySelector("#achievements-grid"), showEmpty("Достижения появятся здесь", "Они начисляются за подтверждённую активность в сервисах."));
   setMarkup(document.querySelector("#goals-grid"), showEmpty("Задайте свой ритм", "Войдите, чтобы создавать личные цели.", '<button class="button button--secondary button--small" type="button" data-auth="login">Войти в аккаунт</button>'));
   setMarkup(document.querySelector("#notifications-list"), showEmpty("Нет уведомлений", "Войдите, чтобы получать важные обновления аккаунта."));
-  for (const id of ["metric-tasks", "metric-score", "metric-time", "stats-events", "stats-days", "stats-tests", "stats-tasks"]) setMetric(id, "—");
+  for (const id of ["metric-time", "stats-events", "stats-days", "stats-tests", "stats-tasks"]) setMetric(id, "—");
+  setMetric("metric-time", "—", { id: "metric-time-note", text: "Общее время активных занятий во всех сервисах" });
   setMarkup(document.querySelector("#activity-chart"), "");
   setMarkup(document.querySelector("#statistics-chart"), "");
   state.weather = null;
@@ -443,7 +529,7 @@ function renderSignedOut() {
 
 function renderProjectCards(projects, compact = false) {
   if (!projects?.length) {
-    return showEmpty("Проекты ещё не подключены", "Когда появятся доступные сервисы, они будут собраны здесь.");
+    return showEmpty("Сервисы ещё не подключены", "Когда появятся доступные сервисы, они будут собраны здесь.");
   }
   return projects.map((project) => {
     const status = String(project.status || "").toLowerCase();
@@ -452,9 +538,9 @@ function renderProjectCards(projects, compact = false) {
     const hasProjectAccess = status === "available" || (status === "restricted" && project.access_level);
     const allowed = Boolean(hasProjectAccess && destination);
     const title = escapeHTML(project.name || "Без названия");
-    const description = escapeHTML(project.description || "Описание проекта не добавлено.");
+    const description = escapeHTML(project.description || "Описание сервиса не добавлено.");
     const slug = escapeHTML(project.slug || project.name || "?");
-    const access = project.access_level ? `Доступ: ${escapeHTML(project.access_level)}` : "Публичный проект";
+    const access = project.access_level ? `Доступ: ${escapeHTML(project.access_level)}` : "Публичный сервис";
     const lastActivity = state.activities?.find((item) => item.project_id === project.id);
     const statusClass = status === "restricted" ? " project-status--restricted" : status === "maintenance" ? " project-status--maintenance" : "";
     return `<article class="project-card${compact ? " project-card--compact" : ""}">
@@ -508,7 +594,7 @@ function renderActivity(activities, target) {
     return;
   }
   setMarkup(target, activities.map((activity) => {
-    const title = eventNames[activity.event_type] || "Активность в проекте";
+    const title = eventNames[activity.event_type] || "Активность в сервисе";
     const project = state.projects?.find((item) => item.id === activity.project_id)?.name;
     return `<div class="activity-row"><span class="activity-symbol">${icon("activity")}</span><span class="activity-copy"><strong>${escapeHTML(title)}</strong><span>${escapeHTML(project || "Экосистема nmchv")}</span></span><time class="activity-time" datetime="${escapeHTML(activity.created_at)}">${escapeHTML(relativeDate(activity.created_at))}</time></div>`;
   }).join(""));
@@ -523,11 +609,6 @@ function renderOverview() {
   const displayName = state.profile?.display_name || state.profile?.username || state.user.email?.split("@")[0] || "Пользователь";
   document.querySelector("#overview-greeting").innerHTML = `${escapeHTML(getGreeting(state.profile?.timezone))}, ${escapeHTML(displayName)}<span class="heading-period">.</span>`;
   document.querySelector("#overview-description").textContent = `${displayName}, ваша активность в экосистеме nmchv.`;
-  document.querySelector("#metric-projects-note").textContent = state.projectsError ? "Не удалось загрузить" : "С доступом к аккаунту";
-  setMetric("metric-projects", state.projects ? String(state.projects.length) : "—");
-  setMetric("metric-tasks", "—", { id: "metric-tasks-note", text: "Нет подтверждённых данных" });
-  setMetric("metric-score", "—");
-  setMetric("metric-time", "—");
   if (state.projectsError) {
     setMarkup(document.querySelector("#overview-projects"), showFailure(state.projectsError));
     setMarkup(document.querySelector("#projects-grid"), showFailure(state.projectsError));
@@ -550,6 +631,7 @@ function renderOverview() {
     renderStatistics(state.activities || []);
     renderInteractiveStatistics();
   }
+  renderLearningTime();
   renderAchievements();
   renderGoals();
   renderNotifications();
@@ -557,7 +639,8 @@ function renderOverview() {
     const message = explainError(error, "Не удалось загрузить погоду");
     const weatherError = document.querySelector("#weather-error");
     if (weatherError) setError(weatherError, message);
-    document.querySelector("#weather-summary").textContent = "Погода временно недоступна";
+    const summary = document.querySelector("#weather-summary");
+    if (summary) summary.textContent = "Погода временно недоступна";
     console.error(message, error);
   });
 }
