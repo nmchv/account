@@ -1463,6 +1463,7 @@ async function initialize() {
     if (error) throw error;
     state.user = session?.user || null;
     if (state.user) {
+      const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;
       await loadUserData();
     } else {
       renderSignedOut();

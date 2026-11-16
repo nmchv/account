@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmchv-account-shell-v8";
+const CACHE_NAME = "nmchv-account-shell-v9";
 const APP_SHELL = [
   "./",
   "./index.html",
