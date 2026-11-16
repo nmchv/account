@@ -211,7 +211,17 @@
               <section class="panel security-card"><div class="security-icon" data-icon="mail"></div><div class="security-copy"><h2>Электронная почта</h2><p id="security-email">Не подключена</p></div><span class="security-badge" id="email-verified">—</span></section>
               <section class="panel security-card security-card--form"><div class="security-icon" data-icon="lock"></div><div class="security-copy"><h2>Пароль</h2><p>Используйте уникальный пароль для аккаунта.</p></div><button class="button button--secondary button--small" type="button" data-auth="reset">Изменить пароль</button></section>
               <section class="panel security-card"><div class="security-icon" data-icon="device"></div><div class="security-copy"><h2>Активная сессия</h2><p id="session-description">Данные появятся после входа</p></div><div class="security-actions"><button class="button button--secondary button--small" id="signout-current" type="button">Это устройство</button><button class="button button--secondary button--small" id="signout-button" type="button">Все устройства</button></div></section>
-              <section class="panel security-card security-card--muted"><div class="security-icon" data-icon="key"></div><div class="security-copy"><h2>Passkeys и вход по биометрии</h2><p>Поддержка WebAuthn будет доступна после настройки провайдера авторизации.</p></div><span class="coming-soon">Позже</span></section>
+              <section class="panel security-card security-card--passkeys">
+                <div class="security-icon" data-icon="key"></div>
+                <div class="security-copy">
+                  <h2>Ключи доступа (Passkey)</h2>
+                  <p id="passkey-description">Вход по отпечатку, Face ID или ключу безопасности без пароля. Работает после настройки passkeys в Supabase для этого домена.</p>
+                  <div class="passkey-list" id="passkey-list"></div>
+                </div>
+                <div class="security-actions security-actions--stack">
+                  <button class="button button--secondary button--small" id="passkey-register" type="button">Добавить ключ</button>
+                </div>
+              </section>
             </div>
           </section>
           <section class="view" data-view="admin">
@@ -286,7 +296,7 @@
       <div class="auth-error" id="auth-error" role="alert" hidden></div>
       <form class="auth-form" id="auth-form">
         <label class="field" id="display-name-field" hidden><span>Имя</span><input name="display_name" maxlength="80" autocomplete="name" placeholder="Как к вам обращаться"></label>
-        <label class="field"><span>Электронная почта</span><input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label class="field"><span>Электронная почта</span><input name="email" type="email" autocomplete="username email" autocapitalize="none" spellcheck="false" required placeholder="you@example.com"></label>
         <label class="field" id="password-field"><span>Пароль</span><input name="password" type="password" minlength="8" autocomplete="current-password" required placeholder="Не менее 8 символов"></label>
         <fieldset class="legal-consents" id="legal-consents" hidden>
           <legend>Документы для регистрации</legend>
@@ -295,6 +305,11 @@
           <label><input type="checkbox" name="legal_data" required><span>Согласен(на) на <a id="legal-link-personal-data-consent" data-legal-key="personal-data-consent" href="#" target="_blank" rel="noopener noreferrer">обработку персональных данных</a></span></label>
         </fieldset>
         <button class="button button--primary auth-submit" type="submit" id="auth-submit">Войти</button>
+        <div class="auth-passkey" id="auth-passkey-block">
+          <div class="auth-divider"><span>или</span></div>
+          <button class="button button--secondary auth-passkey-button" type="button" id="auth-passkey-button"><span data-icon="key"></span> Войти с ключом доступа</button>
+          <p class="auth-passkey-hint" id="auth-passkey-hint" hidden></p>
+        </div>
       </form>
       <div class="auth-footer" id="auth-footer"><button type="button" class="text-button" data-auth="register">Создать аккаунт</button><button type="button" class="text-button" data-auth="reset">Забыли пароль?</button></div>
       <p class="auth-config-note" id="auth-config-note" hidden>Авторизация пока не подключена. Укажите публичные параметры Supabase в <code>scripts/config.js</code>.</p>

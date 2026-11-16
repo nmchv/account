@@ -694,3 +694,20 @@ h1 { margin-top: 16px; font-size: var(--fs-h1); font-weight: 600; line-height: 1
   .admin-legal-actions { justify-content: flex-start; }
   .admin-file-input { max-width: 100%; }
 }
+
+/* ---------- Passkeys / автозаполнение паролей ---------- */
+.auth-passkey { display: grid; gap: 10px; margin-top: 4px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; color: var(--color-text-secondary); font-size: var(--fs-xs); }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
+.auth-passkey-button { width: 100%; }
+.auth-passkey-hint { margin: 0; color: var(--color-warn); font-size: var(--fs-xs); line-height: 1.5; }
+.auth-passkey-hint[hidden] { display: none; }
+.security-card--passkeys { align-items: flex-start; }
+.security-card--passkeys .security-copy { flex: 1; min-width: 0; }
+.security-actions--stack { flex-direction: column; align-items: stretch; }
+.passkey-list { margin-top: 12px; }
+.passkey-empty { margin: 0; font-size: var(--fs-small); }
+.passkey-items { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.passkey-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--color-border); font-size: var(--fs-small); }
+.passkey-item > span { display: grid; gap: 2px; min-width: 0; }
+.passkey-item small { font-size: var(--fs-xs); }

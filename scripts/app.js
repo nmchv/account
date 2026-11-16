@@ -494,6 +494,10 @@ function renderSignedOut() {
   document.querySelector("#profile-form").querySelectorAll("input, textarea, select, button").forEach((input) => { input.disabled = true; });
   document.querySelector("#signout-current").disabled = true;
   document.querySelector("#signout-button").disabled = true;
+  const passkeyRegister = document.querySelector("#passkey-register");
+  if (passkeyRegister) passkeyRegister.disabled = true;
+  const passkeyList = document.querySelector("#passkey-list");
+  if (passkeyList) setMarkup(passkeyList, "");
   document.querySelector("#overview-description").textContent = "Всё, что важно в экосистеме nmchv — в одном месте.";
   document.querySelector("#overview-greeting").innerHTML = `Добрый день<span class="heading-period">.</span>`;
   const weatherError = document.querySelector("#weather-error");
@@ -740,7 +744,10 @@ function updateProfileUI() {
   if (avatarFile) avatarFile.value = "";
   document.querySelector("#signout-button").disabled = !state.user;
   document.querySelector("#logout-button").hidden = !state.user;
+  const passkeyRegister = document.querySelector("#passkey-register");
+  if (passkeyRegister) passkeyRegister.disabled = !state.user || !passkeySupported();
   syncThemeSelect();
+  loadPasskeys().catch(() => {});
 }
 
 function setConnectionStatus(kind, text) {
@@ -968,9 +975,10 @@ function renderAuthMode() {
   const footer = document.querySelector("#auth-footer");
   const nameField = document.querySelector("#display-name-field");
   const legal = document.querySelector("#legal-consents");
+  const passkeyBlock = document.querySelector("#auth-passkey-block");
   const modes = {
     login: ["С возвращением", "Войдите, чтобы продолжить.", "Войти", true, "current-password"],
-    register: ["Создайте аккаунт", "Один аккаунт для проектов экосистемы nmchv.", "Зарегистрироваться", true, "new-password"],
+    register: ["Создайте аккаунт", "Один аккаунт для сервисов экосистемы nmchv.", "Зарегистрироваться", true, "new-password"],
     reset: ["Восстановить доступ", "Отправим ссылку для сброса пароля на вашу почту.", "Отправить ссылку", false, "email"]
   };
   const [heading, text, label, showPassword, autocomplete] = modes[state.authMode];
@@ -982,6 +990,7 @@ function renderAuthMode() {
   submit.textContent = label;
   footer.hidden = state.authMode === "reset";
   if (nameField) nameField.hidden = state.authMode !== "register";
+  if (passkeyBlock) passkeyBlock.hidden = state.authMode !== "login";
   if (legal) {
     legal.hidden = state.authMode !== "register";
     legal.querySelectorAll("input[type='checkbox']").forEach((input) => {
@@ -1006,6 +1015,10 @@ function openAuth(mode = "login") {
     form.querySelectorAll("#legal-consents input").forEach((input) => { if (mode !== "register") input.checked = false; });
   }
   document.querySelector("#auth-submit").disabled = !state.client;
+  const passkeyBtn = document.querySelector("#auth-passkey-button");
+  const passkeyHint = document.querySelector("#auth-passkey-hint");
+  if (passkeyBtn) passkeyBtn.disabled = !state.client || mode !== "login";
+  if (passkeyHint) passkeyHint.hidden = true;
 }
 
 function openRoute(route) {
@@ -1117,6 +1130,7 @@ async function submitAuth(event) {
       if (displayName) options.data = { display_name: displayName };
       const { error: signupError } = await state.client.auth.signUp({ email, password, options });
       if (signupError) throw signupError;
+      await storePasswordCredential(email, password);
       const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;
       showToast("Проверьте почту, чтобы подтвердить адрес.");
     } else if (state.authMode === "reset") {
@@ -1127,6 +1141,7 @@ async function submitAuth(event) {
     } else {
       const { error: loginError } = await state.client.auth.signInWithPassword({ email, password });
       if (loginError) throw loginError;
+      await storePasswordCredential(email, password);
       const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;
       showToast("Вы вошли в аккаунт.");
     }
@@ -1388,6 +1403,12 @@ function bindEvents() {
   document.querySelector("#admin-button")?.addEventListener("click", openAdmin);
   document.querySelector("#signout-current")?.addEventListener("click", () => signOut("local"));
   document.querySelector("#signout-button")?.addEventListener("click", () => signOut("global"));
+  document.querySelector("#auth-passkey-button")?.addEventListener("click", signInWithPasskey);
+  document.querySelector("#passkey-register")?.addEventListener("click", registerPasskey);
+  document.addEventListener("click", (event) => {
+    const del = event.target.closest('[data-action="delete-passkey"]');
+    if (del) { event.preventDefault(); deletePasskey(del.dataset.id); }
+  });
   document.querySelector("#add-goal-button")?.addEventListener("click", () => state.user ? openGoalDialog() : openAuth("login"));
   ["goal-dialog", "task-dialog", "weather-dialog"].forEach((id) => {
     document.querySelector(`#${id}`)?.addEventListener("click", (event) => {
@@ -1427,7 +1448,12 @@ async function initialize() {
   try {
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
     state.client = createClient(config.url, config.key, {
-      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        experimental: { passkey: true }
+      }
     });
     setConnectionStatus("connected", "Supabase подключён");
     document.querySelector("#auth-submit").disabled = false;
