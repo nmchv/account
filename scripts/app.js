@@ -468,45 +468,46 @@ function renderLearningTime() {
 }
 
 function renderSignedOut() {
-  document.querySelector("#logout-button").hidden = true;
-  if (document.querySelector('[data-view="admin"]').classList.contains("is-active")) openRoute("overview");
-  document.querySelector("#auth-screen").hidden = false;
-  document.querySelector("#auth-form").querySelectorAll("input, button").forEach((input) => { input.disabled = !state.client; });
-  document.querySelector("#auth-form").querySelectorAll("input").forEach((input) => { input.required = input.name !== "display_name" && !input.closest("#legal-consents"); });
-  document.querySelector("#auth-form").reset();
+  const setText = (sel, text) => { const el = document.querySelector(sel); if (el) el.textContent = text; };
+  const setHidden = (sel, hidden) => { const el = document.querySelector(sel); if (el) el.hidden = hidden; };
+  const setDisabled = (sel, disabled) => { const el = document.querySelector(sel); if (el) el.disabled = disabled; };
+  setHidden("#logout-button", true);
+  if (document.querySelector('[data-view="admin"]')?.classList.contains("is-active")) openRoute("overview");
+  setHidden("#auth-screen", false);
+  document.querySelector("#auth-form")?.querySelectorAll("input, button").forEach((input) => { input.disabled = !state.client; });
+  document.querySelector("#auth-form")?.querySelectorAll("input").forEach((input) => { input.required = input.name !== "display_name" && !input.closest("#legal-consents"); });
+  document.querySelector("#auth-form")?.reset();
   state.authMode = "login";
-  renderAuthMode();
-  document.querySelector("#signed-out-banner").hidden = false;
-  document.querySelector("#overview-action").hidden = false;
+  try { renderAuthMode(); } catch {}
+  setHidden("#signed-out-banner", false);
+  setHidden("#overview-action", false);
   setAvatar(document.querySelector("#topbar-avatar"), "n");
   setAvatar(document.querySelector("#profile-avatar"), "n");
-  document.querySelector("#profile-heading").textContent = "Профиль";
-  document.querySelector("#profile-email").textContent = "Войдите, чтобы управлять профилем";
-  document.querySelector("#security-email").textContent = "Не подключена";
-  document.querySelector("#session-description").textContent = "Данные появятся после входа";
-  document.querySelector("#email-verified").textContent = "—";
-  document.querySelector("#profile-status").textContent = "Не подключён";
-  document.querySelector("#profile-status").classList.remove("is-connected");
-  document.querySelector("#profile-data-error").hidden = true;
-  document.querySelector("#profile-data-error").textContent = "";
-  document.querySelector("#statistics-error").hidden = true;
-  document.querySelector("#statistics-error").textContent = "";
-  document.querySelector("#profile-form").querySelectorAll("input, textarea, select, button").forEach((input) => { input.disabled = true; });
-  document.querySelector("#signout-current").disabled = true;
-  document.querySelector("#signout-button").disabled = true;
-  const passkeyRegister = document.querySelector("#passkey-register");
-  if (passkeyRegister) passkeyRegister.disabled = true;
-  const passkeyList = document.querySelector("#passkey-list");
-  if (passkeyList) setMarkup(passkeyList, "");
-  document.querySelector("#overview-description").textContent = "Всё, что важно в экосистеме nmchv — в одном месте.";
-  document.querySelector("#overview-greeting").innerHTML = `Добрый день<span class="heading-period">.</span>`;
-  const weatherError = document.querySelector("#weather-error");
-  if (weatherError) weatherError.hidden = true;
-  document.querySelector("#weather-city").textContent = "Ростов-на-Дону";
-  document.querySelector("#weather-summary").textContent = "Погода появится после входа";
-  document.querySelector("#weather-temperature").textContent = "—°";
-  document.querySelector("#weather-updated").textContent = "Укажите город в профиле";
-  document.querySelector("#streak-count").textContent = "0 дней подряд";
+  setText("#profile-heading", "Профиль");
+  setText("#profile-email", "Войдите, чтобы управлять профилем");
+  setText("#security-email", "Не подключена");
+  setText("#session-description", "Данные появятся после входа");
+  setText("#email-verified", "—");
+  setText("#profile-status", "Не подключён");
+  document.querySelector("#profile-status")?.classList.remove("is-connected");
+  setHidden("#profile-data-error", true);
+  setText("#profile-data-error", "");
+  setHidden("#statistics-error", true);
+  setText("#statistics-error", "");
+  document.querySelector("#profile-form")?.querySelectorAll("input, textarea, select, button").forEach((input) => { input.disabled = true; });
+  setDisabled("#signout-current", true);
+  setDisabled("#signout-button", true);
+  setDisabled("#passkey-register", true);
+  setMarkup(document.querySelector("#passkey-list"), "");
+  setText("#overview-description", "Всё, что важно в экосистеме nmchv — в одном месте.");
+  const greeting = document.querySelector("#overview-greeting");
+  if (greeting) greeting.innerHTML = `Добрый день<span class="heading-period">.</span>`;
+  setHidden("#weather-error", true);
+  setText("#weather-city", "Ростов-на-Дону");
+  setText("#weather-summary", "Погода появится после входа");
+  setText("#weather-temperature", "—°");
+  setText("#weather-updated", "Укажите город в профиле");
+  setText("#streak-count", "0 дней подряд");
   setMarkup(document.querySelector("#streak-days"), "");
   setMarkup(document.querySelector("#stats-breakdown"), "");
   setMarkup(document.querySelector("#chart-services"), "");
@@ -527,8 +528,9 @@ function renderSignedOut() {
   state.geoAttemptsError = null;
   state.geoLink = null;
   state.geoLinkError = null;
-  const chartLegend = document.querySelector("#activity-chart").parentElement.nextElementSibling.querySelector("span:first-child");
-  chartLegend.innerHTML = `<i></i> Нет данных об активности`;
+  const chartLegend = document.querySelector("#activity-chart")?.parentElement?.nextElementSibling?.querySelector("span:first-child");
+  if (chartLegend) chartLegend.innerHTML = `<i></i> Нет данных об активности`;
+  showAuthConfigNote();
 }
 
 function renderProjectCards(projects, compact = false) {
