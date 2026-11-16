@@ -497,8 +497,6 @@ function renderSignedOut() {
   document.querySelector("#profile-form")?.querySelectorAll("input, textarea, select, button").forEach((input) => { input.disabled = true; });
   setDisabled("#signout-current", true);
   setDisabled("#signout-button", true);
-  setDisabled("#passkey-register", true);
-  setMarkup(document.querySelector("#passkey-list"), "");
   setText("#overview-description", "Всё, что важно в экосистеме nmchv — в одном месте.");
   const greeting = document.querySelector("#overview-greeting");
   if (greeting) greeting.innerHTML = `Добрый день<span class="heading-period">.</span>`;
@@ -746,10 +744,7 @@ function updateProfileUI() {
   if (avatarFile) avatarFile.value = "";
   document.querySelector("#signout-button").disabled = !state.user;
   document.querySelector("#logout-button").hidden = !state.user;
-  const passkeyRegister = document.querySelector("#passkey-register");
-  if (passkeyRegister) passkeyRegister.disabled = !state.user || !passkeySupported();
   syncThemeSelect();
-  loadPasskeys().catch(() => {});
 }
 
 function setConnectionStatus(kind, text) {
@@ -1124,7 +1119,6 @@ async function submitAuth(event) {
       if (displayName) options.data = { display_name: displayName };
       const { error: signupError } = await state.client.auth.signUp({ email, password, options });
       if (signupError) throw signupError;
-      await storePasswordCredential(email, password);
       const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;
       showToast("Проверьте почту, чтобы подтвердить адрес.");
     } else if (state.authMode === "reset") {
@@ -1135,7 +1129,6 @@ async function submitAuth(event) {
     } else {
       const { error: loginError } = await state.client.auth.signInWithPassword({ email, password });
       if (loginError) throw loginError;
-      await storePasswordCredential(email, password);
       const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;
       showToast("Вы вошли в аккаунт.");
     }
