@@ -985,6 +985,17 @@ function renderAuthMode() {
   passwordInput.autocomplete = autocomplete;
   submit.textContent = label;
   footer.hidden = state.authMode === "reset";
+  if (footer && !footer.hidden) {
+    const registerBtn = footer.querySelector('[data-auth="register"]');
+    const resetBtn = footer.querySelector('[data-auth="reset"]');
+    if (state.authMode === "register") {
+      if (registerBtn) { registerBtn.dataset.auth = "login"; registerBtn.textContent = "Уже есть аккаунт"; }
+      if (resetBtn) resetBtn.hidden = true;
+    } else {
+      if (registerBtn) { registerBtn.dataset.auth = "register"; registerBtn.textContent = "Создать аккаунт"; }
+      if (resetBtn) { resetBtn.dataset.auth = "reset"; resetBtn.hidden = false; resetBtn.textContent = "Забыли пароль?"; }
+    }
+  }
   if (nameField) nameField.hidden = state.authMode !== "register";
   if (legal) {
     legal.hidden = state.authMode !== "register";
