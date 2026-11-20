@@ -1409,10 +1409,6 @@ function bindEvents() {
       if (event.target === event.currentTarget) event.currentTarget.close();
     });
   });
-  document.querySelector("#auth-footer")?.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-auth]");
-    if (button) openAuth(button.dataset.auth);
-  });
   window.addEventListener("hashchange", () => openRoute(location.hash.slice(1)));
   window.addEventListener("nmchv:legal-docs-updated", () => { loadLegalDocs().catch(() => {}); });
 }
