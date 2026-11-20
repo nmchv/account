@@ -474,7 +474,7 @@ function renderSignedOut() {
   setHidden("#logout-button", true);
   if (document.querySelector('[data-view="admin"]')?.classList.contains("is-active")) openRoute("overview");
   setHidden("#auth-screen", false);
-  document.querySelector("#auth-form")?.querySelectorAll("input, button").forEach((input) => { input.disabled = !state.client; });
+  document.querySelector("#auth-form")?.querySelectorAll("button").forEach((input) => { input.disabled = !state.client; });
   document.querySelector("#auth-form")?.querySelectorAll("input").forEach((input) => { input.required = input.name !== "display_name" && !input.closest("#legal-consents"); });
   document.querySelector("#auth-form")?.reset();
   state.authMode = "login";
@@ -1004,10 +1004,11 @@ function openAuth(mode = "login") {
   showAuthConfigNote();
   const form = document.querySelector("#auth-form");
   if (form) {
-    form.querySelectorAll("input, button, select").forEach((input) => { input.disabled = !state.client; });
+    form.querySelectorAll("button").forEach((input) => { input.disabled = !state.client; });
     form.querySelectorAll("#legal-consents input").forEach((input) => { if (mode !== "register") input.checked = false; });
   }
-  document.querySelector("#auth-submit").disabled = !state.client;
+  const submit = document.querySelector("#auth-submit");
+  if (submit) submit.disabled = !state.client;
 }
 
 function openRoute(route) {
