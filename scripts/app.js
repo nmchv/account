@@ -986,8 +986,9 @@ function renderAuthMode() {
   submit.textContent = label;
   footer.hidden = state.authMode === "reset";
   if (footer && !footer.hidden) {
-    const registerBtn = footer.querySelector('[data-auth="register"]');
-    const resetBtn = footer.querySelector('[data-auth="reset"]');
+    const buttons = footer.querySelectorAll("button");
+    const registerBtn = buttons[0];
+    const resetBtn = buttons[1];
     if (state.authMode === "register") {
       if (registerBtn) { registerBtn.dataset.auth = "login"; registerBtn.textContent = "Уже есть аккаунт"; }
       if (resetBtn) resetBtn.hidden = true;
