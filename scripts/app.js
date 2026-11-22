@@ -112,6 +112,11 @@ function showToast(message, type = "success") {
   window.setTimeout(() => toast.remove(), 4200);
 }
 
+function showAuthConfigNote() {
+  const note = document.querySelector("#auth-config-note");
+  if (note) note.hidden = !!state.client;
+}
+
 function setError(element, message) {
   if (!element) return;
   element.textContent = message;
