@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Авторизация nmchv</title>
+    <script src="../scripts/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <div id="status">Обработка авторизации…</div>
+    <script>
+      const { createClient } = supabase;
+      const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get('redirect_to') || 'https://forms.nmchv.ru/auth/callback';
+
+      async function handle() {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error || !session?.user) {
+          // Нет сессии — показываем форму входа (или редиректим на главную с параметром)
+          document.getElementById('status').textContent = 'Требуется вход. Перенаправление…';
+          // Редирект на главную с параметром, чтобы после входа вернуться сюда
+          window.location.href = '../?sso_return=' + encodeURIComponent(redirectTo);
+          return;
+        }
+        // Сессия есть — возвращаемся на forms
+        window.location.href = redirectTo;
+      }
+
+      handle();
+    </script>
+  </body>
+</html>
