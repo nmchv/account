@@ -17,17 +17,21 @@
       
       async function handle() {
         const { data: { session }, error } = await supabase.auth.getSession();
-        document.getElementById('status').textContent = error || !session?.user 
+        document.getElementById('status').textContent = error || !session 
           ? 'Сессия не найдена. Перенаправление на вход…' 
           : 'Сессия найдена. Возврат на формы…';
         
-        if (error || !session?.user) {
-          // Нет сессии — редирект на главную account с параметром возврата
+        if (error || !session) {
           window.location.href = '/?sso_return=' + encodeURIComponent(redirectTo);
           return;
         }
-        // Сессия есть — возвращаемся на forms
-        window.location.href = redirectTo;
+        
+        // Передаём токены на forms.nmchv.ru для установки сессии там
+        const formsUrl = new URL(redirectTo);
+        formsUrl.searchParams.set('access_token', session.access_token);
+        formsUrl.searchParams.set('refresh_token', session.refresh_token);
+        
+        window.location.href = formsUrl.toString();
       }
       
       handle();
