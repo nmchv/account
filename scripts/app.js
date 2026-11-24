@@ -1149,6 +1149,14 @@ async function submitAuth(event) {
       if (loginError) throw loginError;
       const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;
       showToast("Вы вошли в аккаунт.");
+      const urlParams = new URLSearchParams(location.search);
+      const redirect = urlParams.get("redirect");
+      if (redirect) {
+        const callbackUrl = new URL("/auth/callback.html", location.origin);
+        callbackUrl.searchParams.set("redirect_to", redirect);
+        window.location.href = callbackUrl.toString();
+        return;
+      }
     }
   } catch (authError) {
     setError(error, authError?.message || "Не удалось выполнить запрос авторизации.");
