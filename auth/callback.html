@@ -30,6 +30,7 @@
         const formsUrl = new URL(redirectTo);
         formsUrl.searchParams.set('access_token', session.access_token);
         formsUrl.searchParams.set('refresh_token', session.refresh_token);
+        formsUrl.searchParams.set('token', session.access_token); 
         
         window.location.href = formsUrl.toString();
       }
