@@ -1003,6 +1003,11 @@ function renderAuthMode() {
     }
   }
   if (nameField) nameField.hidden = state.authMode !== "register";
+  const roleField = document.querySelector("#role-field");
+  if (roleField) {
+    // disabled исключает скрытые обязательные поля из проверки формы при входе и сбросе пароля.
+    roleField.hidden = roleField.disabled = state.authMode !== "register";
+  }
   if (legal) {
     legal.hidden = state.authMode !== "register";
     legal.querySelectorAll("input[type='checkbox']").forEach((input) => {
@@ -1133,8 +1138,10 @@ async function submitAuth(event) {
   try {
     if (state.authMode === "register") {
       const displayName = (form.elements.namedItem("display_name")?.value || "").trim();
-      const options = { emailRedirectTo: getAuthRedirectUrl() };
-      if (displayName) options.data = { display_name: displayName };
+      const role = form.elements.namedItem("role").value;
+      if (role !== "student" && role !== "teacher") throw new Error("Выберите роль: студент или учитель.");
+      const options = { emailRedirectTo: getAuthRedirectUrl(), data: { role } };
+      if (displayName) options.data.display_name = displayName;
       const { error: signupError } = await state.client.auth.signUp({ email, password, options });
       if (signupError) throw signupError;
       const screen = document.querySelector("#auth-screen"); if (screen) screen.hidden = true;

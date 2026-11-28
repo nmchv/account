@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles/tokens.css">
-    <link rel="stylesheet" href="./styles/app.css?v=8">
+    <link rel="stylesheet" href="./styles/app.css?v=9">
     <script type="module" src="./scripts/app.js"></script>
   </head>
   <body>
@@ -286,6 +286,11 @@
       <div class="auth-error" id="auth-error" role="alert" hidden></div>
       <form class="auth-form" id="auth-form">
         <label class="field" id="display-name-field" hidden><span>Имя</span><input name="display_name" maxlength="80" autocomplete="name" placeholder="Как к вам обращаться"></label>
+        <fieldset class="role-picker" id="role-field" hidden disabled>
+          <legend>Кто вы?</legend>
+          <label><input type="radio" name="role" value="student" required><span>Студент</span></label>
+          <label><input type="radio" name="role" value="teacher" required><span>Учитель</span></label>
+        </fieldset>
         <label class="field"><span>Электронная почта</span><input name="email" type="email" autocomplete="username email" autocapitalize="none" spellcheck="false" required placeholder="you@example.com"></label>
         <label class="field" id="password-field"><span>Пароль</span><input name="password" type="password" minlength="8" autocomplete="current-password" required placeholder="Не менее 8 символов"></label>
         <fieldset class="legal-consents" id="legal-consents" hidden>

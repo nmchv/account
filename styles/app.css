@@ -447,6 +447,11 @@ h1 { margin-top: 16px; font-size: var(--fs-h1); font-weight: 600; line-height: 1
   font-size: var(--fs-xs);
 }
 .auth-screen-footer a:hover { color: var(--color-accent-hover); }
+.role-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.role-picker legend { margin-bottom: 8px; padding: 0; color: var(--color-text-secondary); font-size: var(--fs-small); font-weight: 500; }
+.role-picker label { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-background); font-size: var(--fs-body); cursor: pointer; }
+.role-picker label:has(input:checked) { border-color: var(--color-accent); background: var(--accent-soft); }
+.role-picker input { width: 16px; height: 16px; flex: none; margin: 0; accent-color: var(--color-accent); }
 .legal-consents {
   display: grid;
   gap: 10px;

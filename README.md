@@ -11,6 +11,9 @@
 1. В репозитории [Exam Trainer](https://github.com/nmchv/exam_trainer) выполните `supabase link --project-ref wdijrafblddfcqfbtfmr` и `supabase db push`.
 2. В Supabase SQL Editor выполните `supabase/migrations/20261115000000_account_core.sql`.
 3. Для админки по очереди выполните `20261115120000_account_admin.sql` и `20261115130000_account_admin_full.sql`, затем назначьте администратора (запрос — в конце первого из этих файлов).
+4. Выполните `20261128000000_profile_roles.sql` — роли «студент» / «учитель». Сделайте это до публикации новой версии сайта. Если позже заново выполнить `account_core.sql` или SQL Exam Trainer, повторите эту миграцию: они переопределяют триггер регистрации и права на `profiles`.
+
+Роль выбирается при регистрации и хранится в `profiles.role`; из браузера изменить её нельзя. Все прежние пользователи получают `student`. Назначить учителя вручную (SQL Editor): `update public.profiles set role = 'teacher' where id = (select id from auth.users where email = 'teacher@example.com');`. Одобрение учителей супер-администратором пока не реализовано, поэтому не выдавайте по роли `teacher` доступ к чужим данным.
 
 URL для Supabase Auth заданы в `supabase/config.toml`. После настройки DNS примените их командой `supabase config push --remote=wdijrafblddfcqfbtfmr` из этого репозитория. При смене домена обновите `auth.site_url` и `auth.additional_redirect_urls`.
 
